@@ -52,8 +52,6 @@
   code{background:#eef1f7;padding:1px 5px;border-radius:4px;}
   .banner{background:#fff3cd;border:1px solid #e6d28a;color:#6a5400;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;line-height:1.45;}
   .banner b{color:#4a3a00;}
-  .seg .okmsg{color:#1c7a3a;font-size:13px;}
-  .btn.pdf{background:#0f7a45;}
 </style>
 </head>
 <body>
@@ -76,18 +74,16 @@
   </div>
 
   <div class="banner" id="bannerScript">
-    <b>Para que el registro y el PDF funcionen:</b> en la planilla de Google andá a
-    <b>Extensiones → Apps Script</b>, pegá el contenido actualizado de <code>apps-script/Codigo.gs</code>
-    y hacé <b>Implementar → Administrar implementaciones → Editar → Versión nueva → Implementar</b>.
-    Sin eso, Drive puede insertar filas vacías.
+    <b>Si el registro falla:</b> planilla → <b>Extensiones → Apps Script</b> → pegá
+    <code>apps-script/Codigo.gs</code> → <b>Implementar → Versión nueva</b>.
+    El PDF se genera solo en <code>/rrhh</code> (diseño original), no acá.
   </div>
   <div class="estado" id="estado">Cargando saldos…</div>
   <div id="tablas"></div>
 
   <p class="hint">
-    <b>Generar solicitud</b> escribe LEG, EMPLEADO, PUESTO, DESDE, HASTA, DIAS, PERIODO y ESTADO
-    en una fila nueva arriba de <code>REGISTRO</code>, y crea el <b>PDF en Drive</b> (carpeta
-    “Vacaciones PDF Servinorte”). La vista privada <code>/rrhh</code> sigue disponible para reimprimir.
+    <b>Generar solicitud</b> solo registra en <code>REGISTRO</code> (LEG, EMPLEADO, PUESTO, DESDE, HASTA, DIAS, PERIODO, ESTADO).
+    Para el PDF con el membrete original: entrá a <code>/rrhh</code> (usuario/clave) — autocompleta con la última fila de REGISTRO.
   </p>
 </div>
 
@@ -235,7 +231,6 @@ async function generarSolicitud(emp, seg, btn){
   setEstado(`Registrando ${emp.nombre}: ${seg.dias}d · ${fmt(seg.desde)}→${fmt(seg.hasta)} · período ${seg.periodo}…`);
 
   try{
-    // POST JSON (más fiable que GET para caracteres especiales)
     let data = null;
     try{
       const res = await fetch(CONFIG.appsScriptUrl, {
@@ -249,7 +244,6 @@ async function generarSolicitud(emp, seg, btn){
       try{ data = JSON.parse(text); }catch(_){ data = null; }
     }catch(_){ data = null; }
 
-    // Fallback GET si el POST no devolvió JSON
     if(!(data && typeof data === "object")){
       const url = CONFIG.appsScriptUrl + "?" + new URLSearchParams(payload).toString();
       const res = await fetch(url, { method:"GET", redirect:"follow", credentials:"omit" });
@@ -257,41 +251,16 @@ async function generarSolicitud(emp, seg, btn){
       try{ data = JSON.parse(text); }catch(_){ data = null; }
     }
 
-    if(!data){
-      throw new Error("Apps Script no respondió JSON. Reimplementá Codigo.gs (versión nueva).");
-    }
-    if(!data.ok){
-      throw new Error(data.error || "Error al registrar");
-    }
+    if(!data) throw new Error("Apps Script no respondió JSON. Reimplementá Codigo.gs (versión nueva).");
+    if(!data.ok) throw new Error(data.error || "Error al registrar");
 
     const w = data.written || [];
     const resumen = `${w[0]||payload.leg} · ${w[1]||payload.empleado} · ${w[3]||payload.desde}→${w[4]||payload.hasta} · ${w[5]||payload.dias}d · ${w[6]||payload.periodo}`;
     if(btn){ btn.textContent = "Registrada ✓"; }
-
-    let msg = `Datos grabados en REGISTRO: ${resumen}`;
-    if(data.pdf && data.pdf.url){
-      msg += " · PDF generado en Drive.";
-      setEstado(msg, "ok");
-      // Ofrecer abrir PDF al lado del botón
-      const wrap = btn && btn.parentElement;
-      if(wrap && !wrap.querySelector('a.pdf')){
-        const a = document.createElement('a');
-        a.className = 'btn pdf';
-        a.href = data.pdf.url;
-        a.target = '_blank';
-        a.rel = 'noreferrer';
-        a.textContent = 'Abrir PDF';
-        wrap.appendChild(a);
-      }
-      // Abrir PDF automáticamente
-      window.open(data.pdf.url, '_blank', 'noopener,noreferrer');
-    } else {
-      if(data.pdfError) msg += ` · PDF no generado: ${data.pdfError}`;
-      setEstado(msg, data.pdfError ? "err" : "ok");
-    }
+    setEstado(`Datos grabados en REGISTRO: ${resumen}. PDF en /rrhh`,"ok");
   }catch(err){
     if(btn){ btn.disabled=false; btn.textContent=label || "Generar solicitud"; }
-    setEstado("No se registró: "+(err.message||err)+" — pegá el Codigo.gs nuevo y creá una Versión nueva de la app web.","err");
+    setEstado("No se registró: "+(err.message||err),"err");
   }
 }
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RRHH · Formulario PDF — Servinorte</title>
+<title>RRHH privado · PDF Licencia — Servinorte</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Semi+Condensed:wght@500;600&display=swap" rel="stylesheet">
@@ -84,8 +84,8 @@
 
 <div class="toolbar no-print">
   <img class="logo" src="/logo-servinorte.jfif" alt="Servinorte SRL" width="42" height="42">
-  <span class="estado" id="estado">Área privada RRHH — cargando…</span>
-  <button class="btn" id="btnReg" onclick="cargarDesdeRegistro()">Cargar última de REGISTRO</button>
+  <span class="estado" id="estado">RRHH · PDF licencia (última de REGISTRO)…</span>
+  <button class="btn" id="btnReg" onclick="cargarDesdeRegistro()">Actualizar desde REGISTRO</button>
   <button class="btn solid" id="btnPdf" onclick="descargarPDF()">Descargar PDF</button>
   <button class="btn" onclick="window.print()">Imprimir</button>
 </div>
@@ -96,8 +96,8 @@
 const CONFIG = {
   sheetId: "1aaWSfGKGIU1BhZqNjOgLPn2xC3mVp1gULvEXQvCWI_Q",
   hojaRegistro: "REGISTRO",
-  /* Fila 4 = primera fila de datos debajo del encabezado LEG..ESTADO */
-  rangoRegistro: "A4:H4",
+  /* Datos desde REGISTRO (última solicitud = primera fila con datos desde A4) */
+  rangoRegistro: "A4:H80",
   ciudad: "Ciudad de Salta",
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbwoADdM80IFTeDyZuOu6GWmjd1DFZSwrOSNJM8yZd1ENxk9UjsOFTl-DPQUi2myOphc/exec"
 };
@@ -209,7 +209,7 @@ function aplicarCampos(data, origen){
   campos.fecha = fechaHoy();
   render();
   const est = campos.estado ? ` · Estado: ${campos.estado}` : "";
-  setEstado(`Listo (${origen})${est}. Podés descargar PDF o imprimir.`,"ok");
+  setEstado(`Autocompletado desde ${origen}${est}. Descargá PDF o imprimí.`,"ok");
   const be=document.getElementById('btnEnviar'); if(be) be.disabled=false;
   enviado = false;
 }
@@ -241,9 +241,11 @@ function cellText(dt,r,c){
 }
 
 function cargarDesdeRegistro(){
-  setEstado("Leyendo REGISTRO (LEG, EMPLEADO, PUESTO, DESDE, HASTA, DIAS, PERIODO, ESTADO)…");
+  setEstado("Leyendo última solicitud de REGISTRO…");
+  // Leemos varias filas por si quedaron vacías arriba; tomamos la primera con datos
+  const rango = "A4:H80";
   const url = `https://docs.google.com/spreadsheets/d/${CONFIG.sheetId}/gviz/tq`
-    + `?sheet=${encodeURIComponent(CONFIG.hojaRegistro)}&headers=0&range=${encodeURIComponent(CONFIG.rangoRegistro)}`;
+    + `?sheet=${encodeURIComponent(CONFIG.hojaRegistro)}&headers=0&range=${encodeURIComponent(rango)}`;
   const query = new google.visualization.Query(url);
   query.send(resp=>{
     if(resp.isError()){
@@ -255,108 +257,30 @@ function cargarDesdeRegistro(){
       setEstado("REGISTRO no tiene filas de datos.","err");
       return;
     }
-    // A=LEG B=EMPLEADO C=PUESTO D=DESDE E=HASTA F=DIAS G=PERIODO H=ESTADO
-    const data = {
-      leg: cellText(dt,0,0),
-      empleado: cellText(dt,0,1),
-      puesto: cellText(dt,0,2),
-      desde: cellText(dt,0,3),
-      hasta: cellText(dt,0,4),
-      dias: cellText(dt,0,5),
-      periodo: cellText(dt,0,6),
-      estado: cellText(dt,0,7),
-      pend: ""
-    };
-    if(!data.empleado && !data.leg){
-      setEstado("La primera fila de REGISTRO está vacía.","err");
+    let data = null;
+    for(let r=0; r<dt.getNumberOfRows(); r++){
+      const empleado = cellText(dt,r,1);
+      const leg = cellText(dt,r,0);
+      if(!empleado && !leg) continue;
+      // A=LEG B=EMPLEADO C=PUESTO D=DESDE E=HASTA F=DIAS G=PERIODO H=ESTADO
+      data = {
+        leg: leg,
+        empleado: empleado,
+        puesto: cellText(dt,r,2),
+        desde: cellText(dt,r,3),
+        hasta: cellText(dt,r,4),
+        dias: cellText(dt,r,5),
+        periodo: cellText(dt,r,6),
+        estado: cellText(dt,r,7),
+        pend: ""
+      };
+      break;
+    }
+    if(!data){
+      setEstado("No hay solicitudes con datos en REGISTRO.","err");
       return;
     }
-    aplicarCampos(data, "REGISTRO fila superior");
-  });
-}
-
-async function enviarSolicitud(opts){
-  opts = opts || {};
-  if(enviado){ if(!opts.silencioso) setEstado("Esta solicitud ya fue enviada.","warn"); return true; }
-  if(!CONFIG.appsScriptUrl){
-    setEstado("Falta configurar appsScriptUrl.","err");
-    return false;
-  }
-  if(campos.nombre==="—" || campos.fechaInicio==="—" || campos.diasTomados==="—"){
-    if(!opts.silencioso) setEstado("Faltan datos de la solicitud.","err");
-    return false;
-  }
-
-  const payload={
-    accion:"registrar",
-    leg: campos.legajo,
-    empleado: campos.nombre,
-    puesto: campos.puesto,
-    desde: campos.fechaInicio,
-    hasta: campos.fechaFin,
-    dias: String(campos.diasTomados),
-    periodo: String(campos.anioLicencia),
-    estado: "SOLICITADA"
-  };
-
-  const btn=document.getElementById('btnEnviar');
-  if(btn) btn.disabled=true;
-  if(!opts.silencioso) setEstado("Registrando solicitud en REGISTRO…");
-
-  try{
-    const url = CONFIG.appsScriptUrl + "?" + new URLSearchParams(payload).toString();
-    const res = await fetch(url, { method:"GET", redirect:"follow", credentials:"omit" });
-    const text = await res.text();
-    let data=null;
-    try{ data=JSON.parse(text); }catch(_){ data=null; }
-
-    if(data && data.ok){
-      enviado=true;
-      setEstado("Solicitud registrada en REGISTRO (SOLICITADA) ✓","ok");
-      return true;
-    }
-
-    await enviarViaIframe(payload);
-    enviado=true;
-    setEstado("Solicitud enviada a REGISTRO ✓ (verificá la fila superior en la planilla)","ok");
-    return true;
-  }catch(err){
-    try{
-      await enviarViaIframe(payload);
-      enviado=true;
-      setEstado("Solicitud enviada a REGISTRO ✓ (verificá la planilla)","ok");
-      return true;
-    }catch(err2){
-      if(btn) btn.disabled=false;
-      setEstado("No se pudo registrar: "+(err.message||err),"err");
-      return false;
-    }
-  }
-}
-
-function enviarViaIframe(payload){
-  return new Promise((resolve, reject)=>{
-    try{
-      const iframe=document.createElement('iframe');
-      iframe.name='gas_frame_'+Date.now();
-      iframe.style.cssText='position:absolute;width:0;height:0;border:0;left:-9999px;';
-      document.body.appendChild(iframe);
-      const form=document.createElement('form');
-      form.method='GET';
-      form.action=CONFIG.appsScriptUrl;
-      form.target=iframe.name;
-      Object.keys(payload).forEach(k=>{
-        const input=document.createElement('input');
-        input.type='hidden'; input.name=k; input.value=payload[k]==null?'':String(payload[k]);
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(()=>{
-        try{ form.remove(); iframe.remove(); }catch(_){}
-        resolve(true);
-      }, 2800);
-    }catch(e){ reject(e); }
+    aplicarCampos(data, "última fila de REGISTRO");
   });
 }
 

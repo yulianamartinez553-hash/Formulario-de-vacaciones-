@@ -2,11 +2,16 @@
 
 HTML estático conectado a la planilla de Google Sheets.
 
-## Archivos
+## Archivos / rutas Vercel
 
-- `control_vacaciones_servinorte.html` — saldos pendientes y armado de solicitud
-- `index.html` — formulario imprimible / PDF + envío a REGISTRO
+| Ruta | Archivo | Uso |
+|---|---|---|
+| `/` | `index.html` | Control de vacaciones (entrada principal) |
+| `/formulario` | `formulario.html` | Formulario imprimible / PDF + envío a REGISTRO |
+| `/control` | rewrite → `/` | Alias del control |
+
 - `apps-script/Codigo.gs` — escribe cada solicitud como fila nueva arriba en `REGISTRO`
+- `vercel.json` — rutas de despliegue
 
 ## Planilla
 

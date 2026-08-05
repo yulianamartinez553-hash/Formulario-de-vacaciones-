@@ -1,0 +1,18 @@
+{
+  "cleanUrls": true,
+  "trailingSlash": false,
+  "rewrites": [
+    { "source": "/control", "destination": "/index.html" },
+    { "source": "/control_vacaciones_servinorte.html", "destination": "/index.html" },
+    { "source": "/formulario", "destination": "/formulario.html" },
+    { "source": "/formulario.html", "destination": "/formulario.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    }
+  ]
+}

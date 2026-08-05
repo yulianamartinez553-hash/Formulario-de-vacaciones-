@@ -35,12 +35,12 @@ La planilla debe estar compartida como **Cualquiera con el enlace → Lector** p
    - Quién tiene acceso: Cualquier persona
 4. Copiá la URL y pegala en `CONFIG.appsScriptUrl` de `index.html` (y opcionalmente del control)
 
-Sin ese paso, el formulario igual permite **Descargar PDF** e **Imprimir**; solo falla **Enviar solicitud**.
+Si actualizás `Codigo.gs`, volvé a **Implementar → Nueva implementación** (o “Administrar implementaciones → Editar → Versión nueva”).
 
 ## Flujo
 
-1. Abrir `control_vacaciones_servinorte.html`
+1. Abrir `/` (Control)
 2. Buscar empleado → **Solicitar** → días + fecha → **Calcular**
-3. **Abrir formulario** (lleva los datos por URL)
+3. **Abrir formulario** → se completa con LEG/EMPLEADO/PUESTO/DESDE/HASTA/DIAS/PERIODO y **registra solo en REGISTRO**
 4. **Descargar PDF** y/o **Imprimir**
-5. **Enviar solicitud** → inserta fila en `REGISTRO` con estado `SOLICITADA`
+5. También podés pulsar **Enviar solicitud** manualmente

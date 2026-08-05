@@ -1,14 +1,16 @@
-import { next, rewrite } from '@vercel/edge';
+import { next } from '@vercel/edge';
 
 /**
- * Protege la ruta de generación de PDF / impresión RRHH.
+ * Protege /rrhh (generación PDF). El control público en / no pide clave.
  *
- * Variables en Vercel → Settings → Environment Variables:
- *   RRHH_USER=rrhh
- *   RRHH_PASSWORD=ServinorteRRHH2026
+ * Vercel → Settings → Environment Variables:
+ *   RRHH_USER
+ *   RRHH_PASSWORD
+ *
+ * Defaults: rrhh / ServinorteRRHH2026
  */
 export const config = {
-  matcher: ['/rrhh', '/rrhh/(.*)', '/formulario', '/formulario.html']
+  matcher: ['/rrhh', '/rrhh.html', '/formulario', '/formulario.html']
 };
 
 function authorized(request) {
@@ -38,6 +40,12 @@ export default function middleware(request) {
     });
   }
 
-  // Tras auth, servir el HTML del formulario PDF
-  return rewrite(new URL('/formulario.html', request.url));
+  const url = new URL(request.url);
+  // Alias viejos → ruta privada canónica
+  if (url.pathname === '/formulario' || url.pathname === '/formulario.html') {
+    url.pathname = '/rrhh';
+    return Response.redirect(url, 302);
+  }
+
+  return next();
 }

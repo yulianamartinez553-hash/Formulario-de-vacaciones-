@@ -7,14 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Semi+Condensed:wght@500;600&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/charts/loader.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <style>
-  /* =====================================================================
-     FORMULARIO DE LICENCIA ANUAL / VACACIONES — Servinorte SRL
-     - Autocompletado desde Google Sheets (hoja REGISTRO, B14:H14)
-     - Membrete oficial de fondo + banda inferior de marca (PNG transparente)
-     - Se imprime por DUPLICADO: Original (Empleado) + Duplicado (Empresa)
-     ===================================================================== */
   :root{
     --azul-primario:#1F3C8C; --azul-profundo:#14295E;
     --gris-texto:#2B2B2B; --gris-suave:#5A5A5A;
@@ -30,7 +24,6 @@
     background:#fff var(--membrete) center/100% 100% no-repeat;
     box-shadow:0 18px 50px rgba(0,0,0,.35);
   }
-  /* banda inferior de marca (transparente), sobre la barra de contacto */
   .brand-band{position:absolute;left:0;right:0;bottom:16mm;height:57mm;
     background:var(--banda) center bottom/100% 100% no-repeat;z-index:0;pointer-events:none;}
   .content{position:absolute;top:44mm;left:26mm;right:26mm;z-index:1;}
@@ -45,8 +38,6 @@
   .doc-title i{display:block;height:2px;width:60px;background:var(--azul-primario);margin:9px auto 0;}
 
   .fecha{text-align:right;font-size:14.5px;margin-bottom:22px;}
-
-  /* legajo, nombre y puesto: MISMO tamaño / estilo */
   .legajo,.dest,.puesto{font-family:'Barlow Semi Condensed',sans-serif;font-size:15px;margin-bottom:4px;}
   .legajo .k,.dest .k,.puesto .k{font-weight:600;letter-spacing:.4px;}
   .dest .v{font-weight:600;color:#111;}
@@ -58,7 +49,6 @@
     line-height:1.5;white-space:nowrap;vertical-align:baseline;}
   .nota{font-size:13.5px;color:var(--gris-suave);line-height:1.7;margin-top:4px;}
 
-  /* FIRMAS: las tres iguales — linea solida + rotulo + Aclaracion + Fecha */
   .firmas{display:flex;gap:26px;margin-top:60px;align-items:flex-start;}
   .firma{flex:1;text-align:center;}
   .firma .linea{border-top:1.4px solid #4a4a4a;margin:0 6px 8px;height:0;}
@@ -68,15 +58,15 @@
   .acl .lbl{white-space:nowrap;}
   .acl .fill{flex:1;border-bottom:1px solid #9aa3b2;height:1.15em;}
 
-  .toolbar{max-width:210mm;margin:8px auto 0;display:flex;align-items:center;gap:12px;justify-content:flex-end;}
-  .estado{font-family:'Barlow',sans-serif;font-size:13px;color:#e7ecf6;margin-right:auto;}
-  .estado.ok{color:#b6f0c4;} .estado.err{color:#ffc9c9;}
+  .toolbar{max-width:210mm;margin:8px auto 0;display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding:0 8px;}
+  .estado{font-family:'Barlow',sans-serif;font-size:13px;color:#e7ecf6;margin-right:auto;max-width:420px;}
+  .estado.ok{color:#b6f0c4;} .estado.err{color:#ffc9c9;} .estado.warn{color:#ffe6a7;}
   .btn{font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:12.5px;text-transform:uppercase;
     background:#fff;color:var(--azul-primario);border:1.5px solid var(--azul-primario);
-    padding:9px 18px;border-radius:6px;cursor:pointer;}
+    padding:9px 16px;border-radius:6px;cursor:pointer;}
   .btn.solid{background:var(--azul-primario);color:#fff;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
 
-  /* ===================== IMPRESION (2 hojas exactas) ===================== */
   @page{size:A4;margin:0;}
   @media print{
     html,body{margin:0!important;padding:0!important;background:#fff;}
@@ -90,23 +80,23 @@
 </head>
 <body>
 
-<div class="toolbar">
-  <span class="estado" id="estado">Cargando datos desde la planilla…</span>
-  <button class="btn" onclick="cargarPlanilla()">Actualizar desde planilla</button>
-  <button class="btn solid" onclick="window.print()">Imprimir / PDF</button>
+<div class="toolbar no-print">
+  <span class="estado" id="estado">Preparando formulario…</span>
+  <button class="btn solid" id="btnEnviar" onclick="enviarSolicitud()">Enviar solicitud</button>
+  <button class="btn" id="btnPdf" onclick="descargarPDF()">Descargar PDF</button>
+  <button class="btn" onclick="window.print()">Imprimir</button>
 </div>
 
 <div id="hojas"></div>
 
 <script>
-/* CONFIG · planilla vinculada
-   Rango B14:H14 -> B=legajo C=nombre D=puesto E=desde F=hasta G=dias H=periodo */
 const CONFIG = {
-  sheetId: "1M2MDJjmujIJ36yFKUvFTrmx-JlTLePHcjclqx0vr0Uc",
-  hoja:    "REGISTRO",
-  rango:   "B14:H14",
-  ciudad:  "Ciudad de Salta"
+  sheetId: "1aaWSfGKGIU1BhZqNjOgLPn2xC3mVp1gULvEXQvCWI_Q",
+  ciudad: "Ciudad de Salta",
+  /* Pegá la URL de Apps Script (Extensiones → Apps Script → Implementar → Aplicación web) */
+  appsScriptUrl: ""
 };
+
 const COPIAS = [
   {tag:"Original · Empleado", fill:true},
   {tag:"Duplicado · Empresa", fill:false}
@@ -114,25 +104,43 @@ const COPIAS = [
 const FIRMAS = ["Responsable de Área","p/Recursos Humanos","Firma del Empleado"];
 
 let campos = {
-  ciudad: CONFIG.ciudad, fecha: fechaHoy(),
-  legajo:"38", nombre:"AGUILAR ESTEBAN DAVID", puesto:"Chofer",
-  fechaInicio:"9/3/2026", fechaFin:"15/3/2026", fechaRetorno:"16/3/2026",
-  diasPendientes:"14", periodoPendiente:"2025", anioLicencia:"2025"
+  ciudad: CONFIG.ciudad,
+  fecha: fechaHoy(),
+  legajo: "—",
+  nombre: "—",
+  puesto: "—",
+  fechaInicio: "—",
+  fechaFin: "—",
+  fechaRetorno: "—",
+  diasTomados: "—",
+  diasPendientes: "—",
+  periodoPendiente: "—",
+  anioLicencia: "—"
 };
 
-function fechaHoy(){ return new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'}); }
+let enviado = false;
+
+function fechaHoy(){
+  return new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+}
 function fmtFecha(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear(); }
-function parseFecha(v,f){
+function parseFecha(v){
   if(v instanceof Date) return v;
-  const m=(f||"").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  const m=String(v||"").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
   if(m){ let a=+m[3]; if(a<100)a+=2000; return new Date(a,(+m[2])-1,+m[1]); }
   return null;
 }
-function retornoDesdeFin(v,f){ const d=parseFecha(v,f); if(!d) return "—"; d.setDate(d.getDate()+1); return fmtFecha(d); }
+function retornoDesdeFin(v){
+  const d=parseFecha(v); if(!d) return "—";
+  d.setDate(d.getDate()+1); return fmtFecha(d);
+}
+function esc(s){
+  return String(s??"").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 function bloqueFirma(rot){
   return `<div class="firma">
-      <div class="linea"></div><div class="rot">${rot}</div>
+      <div class="linea"></div><div class="rot">${esc(rot)}</div>
       <div class="acl"><span class="lbl">Aclaración:</span><span class="fill"></span></div>
       <div class="acl"><span class="lbl">Fecha:</span><span class="fill"></span></div>
     </div>`;
@@ -145,25 +153,26 @@ function render(){
     page.innerHTML=`
       <div class="brand-band"></div>
       <div class="content">
-        <div class="copia"><span class="tag ${c.fill?'fill':''}">${c.tag}</span></div>
+        <div class="copia"><span class="tag ${c.fill?'fill':''}">${esc(c.tag)}</span></div>
         <div class="doc-title">Comunicación de Licencia Anual<i></i></div>
-        <p class="fecha"><span class="campo">${campos.ciudad}</span>, <span class="campo">${campos.fecha}</span></p>
+        <p class="fecha"><span class="campo">${esc(campos.ciudad)}</span>, <span class="campo">${esc(campos.fecha)}</span></p>
 
-        <p class="legajo"><span class="k">LEG</span>&nbsp;&nbsp;<span>${campos.legajo}</span></p>
-        <p class="dest"><span class="k">SEÑOR:</span>&nbsp;&nbsp;<span class="v">${campos.nombre}</span></p>
-        <p class="puesto"><span class="k">PUESTO:</span>&nbsp;&nbsp;<span>${campos.puesto}</span></p>
+        <p class="legajo"><span class="k">LEG</span>&nbsp;&nbsp;<span>${esc(campos.legajo)}</span></p>
+        <p class="dest"><span class="k">SEÑOR:</span>&nbsp;&nbsp;<span class="v">${esc(campos.nombre)}</span></p>
+        <p class="puesto"><span class="k">PUESTO:</span>&nbsp;&nbsp;<span>${esc(campos.puesto)}</span></p>
 
         <p class="parrafo">
           Comunicamos a Ud. que su licencia anual correspondiente al año
-          <span class="campo">${campos.anioLicencia}</span> ha sido diagramada para iniciarla el día
-          <span class="campo">${campos.fechaInicio}</span>, concluyendo la misma el día
-          <span class="campo">${campos.fechaFin}</span>, debiendo retomar sus tareas habituales el día
-          <span class="campo">${campos.fechaRetorno}</span>.-
+          <span class="campo">${esc(campos.anioLicencia)}</span> ha sido diagramada para iniciarla el día
+          <span class="campo">${esc(campos.fechaInicio)}</span>, concluyendo la misma el día
+          <span class="campo">${esc(campos.fechaFin)}</span>, debiendo retomar sus tareas habituales el día
+          <span class="campo">${esc(campos.fechaRetorno)}</span>.-
         </p>
         <p class="parrafo">
           Asimismo dejamos constancia que por el período
-          <span class="campo">${campos.periodoPendiente}</span> quedan pendientes
-          <span class="campo">${campos.diasPendientes}</span> días de la Licencia Anual.
+          <span class="campo">${esc(campos.periodoPendiente)}</span> quedan pendientes
+          <span class="campo">${esc(campos.diasPendientes)}</span> días de la Licencia Anual
+          (días solicitados en este tramo: <span class="campo">${esc(campos.diasTomados)}</span>).
         </p>
         <p class="nota">Los mencionados días serán otorgados de acuerdo a las normativas legales laborales vigentes.</p>
 
@@ -174,36 +183,116 @@ function render(){
   document.title="Licencia Anual — "+campos.nombre;
 }
 
-function setEstado(t,cls){ const e=document.getElementById('estado'); e.textContent=t; e.className='estado'+(cls?(' '+cls):''); }
-function cargarPlanilla(){
-  setEstado("Cargando datos desde la planilla…");
-  const url=`https://docs.google.com/spreadsheets/d/${CONFIG.sheetId}/gviz/tq`
-          +`?sheet=${encodeURIComponent(CONFIG.hoja)}&headers=0&range=${CONFIG.rango}`;
-  const query=new google.visualization.Query(url);
-  query.send(resp=>{
-    if(resp.isError()){ setEstado("No se pudo leer la planilla. Verificá que sea pública (Cualquiera con el enlace → Lector).","err"); return; }
-    const dt=resp.getDataTable();
-    if(!dt||dt.getNumberOfRows()<1){ setEstado("La fila 14 está vacía.","err"); return; }
-    const f=c=>(dt.getFormattedValue(0,c)||"").trim();
-    const v=c=>dt.getValue(0,c);
-    campos.legajo           = f(0)||"—";
-    campos.nombre           = (f(1)||"—").toUpperCase();
-    campos.puesto           = f(2)||"—";
-    campos.fechaInicio      = f(3)||"—";
-    campos.fechaFin         = f(4)||"—";
-    campos.diasPendientes   = f(5)||"—";
-    campos.periodoPendiente = f(6)||"—";
-    campos.anioLicencia     = f(6)||"—";
-    campos.fechaRetorno     = retornoDesdeFin(v(4), f(4));
-    campos.fecha            = fechaHoy();
-    render();
-    setEstado("Datos cargados desde REGISTRO ✓","ok");
-  });
+function setEstado(t,cls){
+  const e=document.getElementById('estado');
+  e.textContent=t; e.className='estado'+(cls?(' '+cls):'');
 }
 
-render();
-google.charts.load('current');
-google.charts.setOnLoadCallback(cargarPlanilla);
+function cargarDesdeURL(){
+  const q=new URLSearchParams(location.search);
+  const nombre=(q.get('emp')||q.get('nombre')||"").trim();
+  const leg=(q.get('leg')||q.get('legajo')||"").trim();
+  const puesto=(q.get('puesto')||"").trim();
+  const per=(q.get('per')||q.get('periodo')||"").trim();
+  const dias=(q.get('dias')||"").trim();
+  const desde=(q.get('desde')||"").trim();
+  const hasta=(q.get('hasta')||"").trim();
+  const pend=(q.get('pend')||"").trim();
+
+  if(!nombre && !leg){
+    setEstado("Abrí este formulario desde Control de Vacaciones (Solicitar → Abrir formulario).","warn");
+    render();
+    document.getElementById('btnEnviar').disabled=true;
+    return false;
+  }
+
+  campos.legajo = leg || "—";
+  campos.nombre = (nombre || "—").toUpperCase();
+  campos.puesto = puesto || "—";
+  campos.fechaInicio = desde || "—";
+  campos.fechaFin = hasta || "—";
+  campos.fechaRetorno = retornoDesdeFin(hasta);
+  campos.diasTomados = dias || "—";
+  campos.diasPendientes = pend !== "" ? pend : "—";
+  campos.periodoPendiente = per || "—";
+  campos.anioLicencia = per || "—";
+  campos.fecha = fechaHoy();
+  render();
+  setEstado("Formulario listo. Podés descargar PDF, imprimir o enviar la solicitud a REGISTRO.","ok");
+  return true;
+}
+
+async function enviarSolicitud(){
+  if(enviado){ setEstado("Esta solicitud ya fue enviada.","warn"); return; }
+  if(!CONFIG.appsScriptUrl){
+    setEstado("Falta configurar appsScriptUrl. Implementá apps-script/Codigo.gs y pegá la URL en CONFIG.","err");
+    return;
+  }
+  if(campos.nombre==="—" || campos.fechaInicio==="—" || campos.diasTomados==="—"){
+    setEstado("Faltan datos de la solicitud.","err"); return;
+  }
+
+  const payload={
+    accion:"registrar",
+    leg: campos.legajo,
+    empleado: campos.nombre,
+    puesto: campos.puesto,
+    desde: campos.fechaInicio,
+    hasta: campos.fechaFin,
+    dias: campos.diasTomados,
+    periodo: campos.anioLicencia,
+    estado: "SOLICITADA"
+  };
+
+  const btn=document.getElementById('btnEnviar');
+  btn.disabled=true;
+  setEstado("Registrando solicitud en REGISTRO…");
+
+  try{
+    const res=await fetch(CONFIG.appsScriptUrl, {
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body: JSON.stringify(payload),
+      redirect:"follow"
+    });
+    const text=await res.text();
+    let data;
+    try{ data=JSON.parse(text); }
+    catch(_){ throw new Error("Respuesta no JSON del Apps Script. ¿URL correcta y acceso «Cualquier persona»?"); }
+    if(!data.ok) throw new Error(data.error || "Error al registrar");
+    enviado=true;
+    setEstado("Solicitud registrada en REGISTRO (estado SOLICITADA) ✓","ok");
+  }catch(err){
+    btn.disabled=false;
+    setEstado("No se pudo registrar: "+err.message,"err");
+  }
+}
+
+async function descargarPDF(){
+  const btn=document.getElementById('btnPdf');
+  btn.disabled=true;
+  setEstado("Generando PDF…");
+  try{
+    const el=document.getElementById('hojas');
+    const nombre=(campos.nombre||"licencia").replace(/[^\wáéíóúñÁÉÍÓÚÑ]+/g,"_").slice(0,40);
+    const opt={
+      margin:0,
+      filename:`Licencia_${nombre}_${campos.anioLicencia||""}.pdf`,
+      image:{type:'jpeg', quality:0.98},
+      html2canvas:{scale:2, useCORS:true, letterRendering:true},
+      jsPDF:{unit:'mm', format:'a4', orientation:'portrait'},
+      pagebreak:{mode:['css','legacy']}
+    };
+    await html2pdf().set(opt).from(el).save();
+    setEstado("PDF descargado ✓","ok");
+  }catch(err){
+    setEstado("No se pudo generar el PDF: "+err.message+" — usá Imprimir → Guardar como PDF.","err");
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+cargarDesdeURL();
 </script>
 </body>
 </html>

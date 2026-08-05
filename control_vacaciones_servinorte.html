@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Vacaciones — Servinorte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@0,400;0,500;0,600;0,700&family=Barlow+Semi+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/charts/loader.js"></script>
+<style>
+  :root{--azul:#1F3C8C;--azul-prof:#14295E;--gris:#5A5A5A;--linea:#e2e7f0;--pend:#1F3C8C;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Barlow',system-ui,sans-serif;color:#222;background:#eef1f7;}
+
+  header{background:var(--azul-prof);color:#fff;padding:22px 26px;display:flex;align-items:center;gap:16px;}
+  header .mark{width:46px;height:38px;flex:none;}
+  header h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:2px;font-size:22px;text-transform:uppercase;}
+  header .sub{font-size:12.5px;color:#c7d0e6;letter-spacing:.5px;}
+
+  .wrap{max-width:1040px;margin:0 auto;padding:22px 20px 60px;}
+
+  .tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px;}
+  .search{flex:1;min-width:220px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--linea);
+    border-radius:10px;padding:10px 14px;}
+  .search input{border:none;outline:none;font-size:15px;width:100%;font-family:'Barlow',sans-serif;}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .chip{font-family:'Barlow Semi Condensed',sans-serif;font-size:13px;letter-spacing:.5px;border:1.5px solid var(--azul);
+    color:var(--azul);background:#fff;border-radius:20px;padding:6px 14px;cursor:pointer;user-select:none;}
+  .chip.on{background:var(--azul);color:#fff;}
+
+  .estado{font-size:13px;color:var(--gris);margin:2px 2px 12px;}
+  .estado.ok{color:#1c7a3a;} .estado.err{color:#b52a2a;}
+
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--linea);border-radius:12px;overflow:hidden;}
+  th,td{padding:11px 12px;font-size:14px;text-align:left;border-bottom:1px solid #eef1f7;}
+  th{font-family:'Barlow Semi Condensed',sans-serif;text-transform:uppercase;letter-spacing:.6px;font-size:11.5px;color:var(--gris);background:#f7f9fd;}
+  th.per,td.per{text-align:center;width:64px;}
+  tr:hover td{background:#f9fbff;}
+  .num{font-weight:700;}
+  .pend{display:inline-block;min-width:26px;padding:2px 8px;border-radius:6px;background:rgba(31,60,140,.10);color:var(--azul-prof);font-weight:700;}
+  .zero{color:#b8bfcc;}
+  .btn{font-family:'Oswald',sans-serif;letter-spacing:.8px;font-size:11.5px;text-transform:uppercase;
+    background:var(--azul);color:#fff;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;white-space:nowrap;}
+  .btn.ghost{background:#fff;color:var(--azul);border:1.5px solid var(--azul);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+
+  /* panel de solicitud */
+  .panel td{background:#f2f6ff!important;}
+  .panel .box{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
+  .fld{display:flex;flex-direction:column;gap:4px;}
+  .fld label{font-size:11.5px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;}
+  .fld input{font-family:'Barlow',sans-serif;font-size:14px;padding:8px 10px;border:1px solid var(--linea);border-radius:8px;width:130px;}
+  .segs{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
+  .seg{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13.5px;background:#fff;border:1px solid var(--linea);
+    border-radius:9px;padding:9px 12px;}
+  .seg b{color:var(--azul-prof);}
+  .warn{color:#b52a2a;font-size:13px;margin-top:8px;}
+  .hint{font-size:12px;color:var(--gris);margin-top:10px;line-height:1.5;}
+  code{background:#eef1f7;padding:1px 5px;border-radius:4px;}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="mark" viewBox="0 0 96 78" aria-hidden="true">
+    <rect width="96" height="78" rx="6" fill="#2a4aa0"/>
+    <g fill="none" stroke="#fff" stroke-linecap="round">
+      <path d="M8,66 C34,60 58,42 92,12" stroke-width="6"/>
+      <path d="M6,58 C30,52 52,36 84,10" stroke-width="3" opacity=".7"/>
+      <path d="M20,70 C46,62 70,46 100,24" stroke-width="2.4" opacity=".55"/>
+    </g>
+  </svg>
+  <div>
+    <h1>Control de Vacaciones</h1>
+    <div class="sub">SERVINORTE SRL · Licencia Anual por período</div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="tools">
+    <div class="search">
+      <span>🔎</span>
+      <input id="q" type="text" placeholder="Buscar empleado por nombre o legajo…" oninput="pintar()">
+    </div>
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="estado" id="estado">Cargando saldos…</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Legajo</th><th>Empleado</th><th>Puesto</th>
+        <th class="per">2023</th><th class="per">2024</th><th class="per">2025</th><th class="per">2026</th>
+        <th>Pendiente</th><th></th>
+      </tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
+
+  <p class="hint">
+    Estructura esperada de la hoja <code>CONTROL</code> (una fila por empleado, desde la fila 2):
+    <code>A=legajo · B=nombre · C=puesto · D=2023 · E=2024 · F=2025 · G=2026</code> (días pendientes por período).
+    La planilla debe estar como “Cualquiera con el enlace → Lector”. Si tu hoja usa otras columnas, avisame y lo ajusto.
+  </p>
+</div>
+
+<script>
+/* =======================================================================
+   CONFIG
+   ======================================================================= */
+const CONFIG = {
+  sheetId: "1M2MDJjmujIJ36yFKUvFTrmx-JlTLePHcjclqx0vr0Uc",
+  hoja:    "CONTROL",
+  rango:   "A2:G",                                   // legajo,nombre,puesto,2023,2024,2025,2026
+  planilla:"planilla_vacaciones_servinorte.html"     // formulario (mismo repo)
+};
+const PERIODOS = [2023,2024,2025,2026];
+
+/* Datos de muestra (se ven si aún no cargó la planilla) */
+let empleados = [
+  {legajo:"38", nombre:"AGUILAR ESTEBAN DAVID", puesto:"Chofer",   saldos:{2023:5,2024:0,2025:14,2026:14}},
+  {legajo:"12", nombre:"LÓPEZ MARÍA FERNANDA",  puesto:"Administración", saldos:{2023:0,2024:0,2025:7,2026:14}},
+  {legajo:"07", nombre:"GÓMEZ JUAN CARLOS",     puesto:"Mecánico", saldos:{2023:3,2024:10,2025:0,2026:0}},
+];
+let filtroPeriodo = null;   // null = todos
+let abierto = null;         // legajo con panel abierto
+
+/* -------- utilidades de fecha (días corridos) -------- */
+function toDate(v){ const [y,m,d]=v.split('-').map(Number); return new Date(y,m-1,d); }
+function addDias(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+function fmt(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear(); }
+
+/* -------- reparto de días por período (más viejo primero) -------- */
+function repartir(emp, dias, desde){
+  const segs=[]; let restan=dias; let cursor=desde;
+  for(const p of PERIODOS){
+    const saldo=emp.saldos[p]||0;
+    if(restan<=0) break;
+    if(saldo<=0) continue;
+    const toma=Math.min(restan,saldo);
+    const hasta=addDias(cursor,toma-1);
+    segs.push({periodo:p,dias:toma,desde:cursor,hasta:hasta});
+    cursor=addDias(hasta,1);
+    restan-=toma;
+  }
+  return {segs,restan};
+}
+
+/* -------- link a la planilla con datos de la solicitud -------- */
+function linkForm(emp,seg){
+  const q=new URLSearchParams({
+    emp:emp.nombre, leg:emp.legajo, puesto:emp.puesto,
+    per:String(seg.periodo), dias:String(seg.dias),
+    desde:fmt(seg.desde), hasta:fmt(seg.hasta)
+  });
+  return CONFIG.planilla+"?"+q.toString();
+}
+
+/* -------- render -------- */
+function chips(){
+  const c=document.getElementById('chips');
+  c.innerHTML = `<span class="chip ${filtroPeriodo===null?'on':''}" onclick="setFiltro(null)">Todos</span>` +
+    PERIODOS.map(p=>`<span class="chip ${filtroPeriodo===p?'on':''}" onclick="setFiltro(${p})">Debe ${p}</span>`).join("");
+}
+function setFiltro(p){ filtroPeriodo=p; chips(); pintar(); }
+
+function totalPend(emp){ return PERIODOS.reduce((a,p)=>a+(emp.saldos[p]||0),0); }
+
+function pintar(){
+  const q=(document.getElementById('q').value||"").toLowerCase().trim();
+  const tb=document.getElementById('tbody'); tb.innerHTML="";
+  const lista=empleados.filter(e=>{
+    const okq = !q || e.nombre.toLowerCase().includes(q) || String(e.legajo).toLowerCase().includes(q);
+    const okp = filtroPeriodo===null || (e.saldos[filtroPeriodo]||0)>0;
+    return okq && okp;
+  });
+  if(!lista.length){ tb.innerHTML=`<tr><td colspan="9" style="color:#8a93a3">Sin resultados.</td></tr>`; return; }
+  lista.forEach(e=>{
+    const celdas=PERIODOS.map(p=>{
+      const v=e.saldos[p]||0;
+      return `<td class="per">${v>0?`<span class="pend">${v}</span>`:`<span class="zero">0</span>`}</td>`;
+    }).join("");
+    const tot=totalPend(e);
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="num">${e.legajo}</td>
+      <td>${e.nombre}</td>
+      <td>${e.puesto}</td>
+      ${celdas}
+      <td class="num">${tot}</td>
+      <td><button class="btn" ${tot>0?'':'disabled'} onclick="solicitar('${e.legajo}')">Solicitar vacaciones</button></td>`;
+    tb.appendChild(tr);
+    if(abierto===e.legajo) tb.appendChild(panel(e));
+  });
+}
+
+/* -------- panel de solicitud -------- */
+function solicitar(leg){ abierto = (abierto===leg? null : leg); pintar(); }
+
+function panel(e){
+  const tr=document.createElement('tr'); tr.className='panel';
+  const hoy=new Date(); const iso=hoy.toISOString().slice(0,10);
+  tr.innerHTML=`
+    <td colspan="9">
+      <div class="box">
+        <div class="fld"><label>Días a solicitar</label><input type="number" min="1" id="d-${e.legajo}" value="${Math.min(7,totalPend(e))}"></div>
+        <div class="fld"><label>Fecha de inicio</label><input type="date" id="f-${e.legajo}" value="${iso}"></div>
+        <button class="btn ghost" onclick="calcular('${e.legajo}')">Calcular</button>
+      </div>
+      <div class="segs" id="segs-${e.legajo}"></div>
+    </td>`;
+  return tr;
+}
+
+function calcular(leg){
+  const e=empleados.find(x=>x.legajo===leg);
+  const dias=parseInt(document.getElementById('d-'+leg).value,10);
+  const fval=document.getElementById('f-'+leg).value;
+  const cont=document.getElementById('segs-'+leg);
+  if(!dias||dias<1||!fval){ cont.innerHTML=`<div class="warn">Completá días y fecha de inicio.</div>`; return; }
+  const {segs,restan}=repartir(e, dias, toDate(fval));
+  if(!segs.length){ cont.innerHTML=`<div class="warn">Este empleado no tiene días pendientes.</div>`; return; }
+  let html=segs.map(s=>`
+    <div class="seg">
+      <span>Período <b>${s.periodo}</b> — <b>${s.dias}</b> día(s): ${fmt(s.desde)} → ${fmt(s.hasta)}</span>
+      <a class="btn" href="${linkForm(e,s)}" target="_blank" rel="noreferrer">Abrir formulario</a>
+    </div>`).join("");
+  if(restan>0) html+=`<div class="warn">Faltan ${restan} día(s): el empleado no tiene saldo suficiente en 2023–2026.</div>`;
+  cont.innerHTML=html;
+}
+
+/* -------- carga de saldos desde Google Sheets -------- */
+function setEstado(t,cls){ const el=document.getElementById('estado'); el.textContent=t; el.className='estado'+(cls?(' '+cls):''); }
+function cargar(){
+  setEstado("Cargando saldos…");
+  const url=`https://docs.google.com/spreadsheets/d/${CONFIG.sheetId}/gviz/tq`
+          +`?sheet=${encodeURIComponent(CONFIG.hoja)}&headers=0&range=${CONFIG.rango}`;
+  const query=new google.visualization.Query(url);
+  query.send(resp=>{
+    if(resp.isError()){ setEstado("No se pudo leer la hoja CONTROL. Verificá el nombre de la hoja y que la planilla sea pública (Lector).","err"); pintar(); return; }
+    const dt=resp.getDataTable();
+    const f=(r,c)=>(dt.getFormattedValue(r,c)||"").trim();
+    const n=(r,c)=>{ const x=parseInt((dt.getFormattedValue(r,c)||"").replace(/[^\\d-]/g,''),10); return isNaN(x)?0:x; };
+    const rows=dt.getNumberOfRows();
+    const out=[];
+    for(let r=0;r<rows;r++){
+      const nombre=f(r,1); if(!nombre) continue;
+      out.push({ legajo:f(r,0), nombre:nombre.toUpperCase(), puesto:f(r,2),
+        saldos:{2023:n(r,3),2024:n(r,4),2025:n(r,5),2026:n(r,6)} });
+    }
+    if(out.length){ empleados=out; setEstado("Saldos cargados desde CONTROL ✓","ok"); }
+    else setEstado("La hoja CONTROL no tiene filas con datos.","err");
+    pintar();
+  });
+}
+
+/* Init */
+chips(); pintar();
+google.charts.load('current');
+google.charts.setOnLoadCallback(cargar);
+</script>
+</body>
+</html>

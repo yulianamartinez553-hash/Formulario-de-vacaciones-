@@ -74,13 +74,38 @@
   .btn.solid{background:var(--azul-primario);color:#fff;}
   .btn:disabled{opacity:.45;cursor:not-allowed;}
 
+  /* Evita que el pie del membrete salte a otra hoja en PDF/impresión */
+  body.pdf-export .page,
+  body.pdf-export #hojas{
+    margin:0!important;padding:0!important;
+  }
+  body.pdf-export .page{
+    box-shadow:none!important;
+    width:210mm!important;height:297mm!important;max-height:297mm!important;
+    overflow:hidden!important;
+    page-break-after:always;break-after:page;
+    page-break-inside:avoid;break-inside:avoid;
+  }
+  body.pdf-export .page:last-child{
+    page-break-after:auto;break-after:auto;
+  }
+
   @page{size:A4;margin:0;}
   @media print{
-    html,body{margin:0!important;padding:0!important;background:#fff;}
-    .toolbar,.no-print{display:none!important;}
-    #hojas{margin:0;padding:0;}
-    .page{margin:0!important;width:210mm;height:296mm;box-shadow:none;overflow:hidden;}
-    .page:not(:last-child){page-break-after:always;break-after:page;}
+    html,body{margin:0!important;padding:0!important;background:#fff!important;width:210mm;}
+    .toolbar,.no-print,.gate{display:none!important;}
+    .app-shell{display:block!important;}
+    #hojas{margin:0!important;padding:0!important;width:210mm;}
+    .page{
+      margin:0!important;padding:0!important;box-shadow:none!important;
+      width:210mm!important;height:297mm!important;max-height:297mm!important;
+      overflow:hidden!important;
+      page-break-after:always!important;break-after:page!important;
+      page-break-inside:avoid!important;break-inside:avoid!important;
+    }
+    .page:last-child{
+      page-break-after:auto!important;break-after:auto!important;
+    }
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
 
@@ -108,7 +133,7 @@
   <form class="gate-card" id="gateForm" autocomplete="on">
     <img src="/logo-servinorte.jfif" alt="Servinorte">
     <h1>RRHH · Formulario PDF</h1>
-    <p>Versión <b>v2026-08-05q</b> · Firmas: Encargado de Área + Empleado · Pendientes en 0</p>
+    <p>Versión <b>v2026-08-05r</b> · Firmas: Encargado de Área + Empleado · Pendientes en 0</p>
     <p>Ingresá la clave para generar el PDF con los datos de la última solicitud de REGISTRO.</p>
     <label for="clave">Clave de acceso</label>
     <input id="clave" name="password" type="password" placeholder="Clave RRHH" required>
@@ -404,22 +429,37 @@ async function descargarPDF(){
   const btn=document.getElementById('btnPdf');
   btn.disabled=true;
   setEstado("Generando PDF…");
+  const pages=[...document.querySelectorAll('#hojas .page')];
+  document.body.classList.add('pdf-export');
   try{
-    const el=document.getElementById('hojas');
     const nombre=(campos.nombre||"licencia").replace(/[^\wáéíóúñÁÉÍÓÚÑ]+/g,"_").slice(0,40);
+    const filename=`Licencia_${nombre}_${campos.anioLicencia||""}.pdf`;
     const opt={
       margin:0,
-      filename:`Licencia_${nombre}_${campos.anioLicencia||""}.pdf`,
+      filename,
       image:{type:'jpeg', quality:0.98},
-      html2canvas:{scale:2, useCORS:true, letterRendering:true},
-      jsPDF:{unit:'mm', format:'a4', orientation:'portrait'},
-      pagebreak:{mode:['css','legacy']}
+      html2canvas:{
+        scale:2,
+        useCORS:true,
+        letterRendering:true,
+        scrollX:0,
+        scrollY:0,
+        windowWidth:794,
+        windowHeight:1123
+      },
+      jsPDF:{unit:'mm', format:'a4', orientation:'portrait'}
     };
-    await html2pdf().set(opt).from(el).save();
+    /* Una hoja A4 por copia: evita que el pie del membrete genere páginas extra */
+    let worker=html2pdf().set(opt).from(pages[0]).toPdf();
+    for(let i=1;i<pages.length;i++){
+      worker=worker.get('pdf').then(pdf=>{ pdf.addPage(); }).from(pages[i]).toContainer().toCanvas().toPdf();
+    }
+    await worker.save();
     setEstado("PDF descargado ✓","ok");
   }catch(err){
     setEstado("No se pudo generar el PDF: "+err.message+" — usá Imprimir → Guardar como PDF.","err");
   }finally{
+    document.body.classList.remove('pdf-export');
     btn.disabled=false;
   }
 }

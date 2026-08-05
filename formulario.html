@@ -78,10 +78,40 @@
     .page:not(:last-child){page-break-after:always;break-after:page;}
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
+
+  .gate{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#14295E,#1F3C8C 55%,#3a5bb5);
+    display:flex;align-items:center;justify-content:center;padding:24px;}
+  .gate[hidden]{display:none!important;}
+  .gate-card{width:min(420px,100%);background:#fff;border-radius:16px;padding:28px 26px 24px;
+    box-shadow:0 20px 50px rgba(0,0,0,.35);color:#222;}
+  .gate-card img{width:64px;height:64px;object-fit:contain;display:block;margin:0 auto 12px;border-radius:12px;}
+  .gate-card h1{font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:22px;text-align:center;
+    text-transform:uppercase;color:#14295E;margin-bottom:6px;}
+  .gate-card p{text-align:center;color:#5A5A5A;font-size:14px;margin-bottom:18px;line-height:1.45;}
+  .gate-card label{display:block;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:#5A5A5A;margin-bottom:6px;}
+  .gate-card input{width:100%;font:inherit;font-size:16px;padding:12px 12px;border:1.5px solid #d5dbe8;
+    border-radius:10px;margin-bottom:12px;}
+  .gate-card .err{color:#b52a2a;font-size:13px;min-height:1.2em;margin-bottom:8px;}
+  .gate-card .btn{width:100%;text-align:center;}
+  .app-shell[hidden]{display:none!important;}
+
 </style>
 </head>
 <body>
 
+<div class="gate" id="gate">
+  <form class="gate-card" id="gateForm" autocomplete="on">
+    <img src="/logo-servinorte.jfif" alt="Servinorte">
+    <h1>RRHH · Formulario PDF</h1>
+    <p>Ingresá la clave para generar el PDF con los datos de la última solicitud de REGISTRO.</p>
+    <label for="clave">Clave de acceso</label>
+    <input id="clave" name="password" type="password" placeholder="Clave RRHH" required>
+    <div class="err" id="gateErr"></div>
+    <button class="btn solid" type="submit">Entrar y cargar formulario</button>
+  </form>
+</div>
+
+<div class="app-shell" id="appShell" hidden>
 <div class="toolbar no-print">
   <img class="logo" src="/logo-servinorte.jfif" alt="Servinorte SRL" width="42" height="42">
   <span class="estado" id="estado">RRHH · PDF licencia (última de REGISTRO)…</span>
@@ -91,8 +121,39 @@
 </div>
 
 <div id="hojas"></div>
+</div><!-- /app-shell -->
 
 <script>
+
+const RRHH_CLAVE = "ServinorteRRHH2026";
+const RRHH_KEY = "servinorte_rrhh_ok";
+
+function desbloquearRRHH(){
+  document.getElementById('gate').hidden = true;
+  document.getElementById('appShell').hidden = false;
+  iniciar();
+}
+
+function setupGate(){
+  const form = document.getElementById('gateForm');
+  const err = document.getElementById('gateErr');
+  if(sessionStorage.getItem(RRHH_KEY) === '1'){
+    desbloquearRRHH();
+    return;
+  }
+  form.addEventListener('submit', (ev)=>{
+    ev.preventDefault();
+    const v = (document.getElementById('clave').value || '').trim();
+    if(v === RRHH_CLAVE){
+      sessionStorage.setItem(RRHH_KEY, '1');
+      err.textContent = '';
+      desbloquearRRHH();
+    } else {
+      err.textContent = 'Clave incorrecta. Probá de nuevo.';
+    }
+  });
+}
+
 const CONFIG = {
   sheetId: "1aaWSfGKGIU1BhZqNjOgLPn2xC3mVp1gULvEXQvCWI_Q",
   hojaRegistro: "REGISTRO",
@@ -323,7 +384,7 @@ function iniciar(){
   }
 }
 
-iniciar();
+setupGate();
 </script>
 </body>
 </html>

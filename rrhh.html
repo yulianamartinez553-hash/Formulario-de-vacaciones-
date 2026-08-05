@@ -50,7 +50,7 @@
     line-height:1.5;white-space:nowrap;vertical-align:baseline;}
   .nota{font-size:13.5px;color:var(--gris-suave);line-height:1.7;margin-top:4px;}
 
-  .firmas{display:flex;gap:26px;margin-top:60px;align-items:flex-start;}
+  .firmas{display:flex;gap:60px;margin-top:60px;align-items:flex-start;justify-content:space-between;max-width:520px;margin-left:auto;margin-right:auto;}
   .firma{flex:1;text-align:center;}
   .firma .linea{border-top:1.4px solid #4a4a4a;margin:0 6px 8px;height:0;}
   .firma .rot{font-family:'Barlow Semi Condensed',sans-serif;font-size:13.5px;color:#333;letter-spacing:.3px;margin-bottom:6px;}
@@ -167,7 +167,7 @@ const COPIAS = [
   {tag:"Original · Empleado", fill:true},
   {tag:"Duplicado · Empresa", fill:false}
 ];
-const FIRMAS = ["Responsable de Área","p/Recursos Humanos","Firma del Empleado"];
+const FIRMAS = ["Encargado de Área","Firma del Empleado"];
 
 let campos = {
   ciudad: CONFIG.ciudad,
@@ -179,7 +179,7 @@ let campos = {
   fechaFin: "—",
   fechaRetorno: "—",
   diasTomados: "—",
-  diasPendientes: "—",
+  diasPendientes: "0",
   periodoPendiente: "—",
   anioLicencia: "—",
   estado: ""
@@ -263,7 +263,7 @@ function aplicarCampos(data, origen){
   campos.fechaFin = data.hasta || "—";
   campos.fechaRetorno = retornoDesdeFin(data.hasta);
   campos.diasTomados = data.dias != null && data.dias !== "" ? String(data.dias) : "—";
-  campos.diasPendientes = data.pend != null && data.pend !== "" ? String(data.pend) : "—";
+  campos.diasPendientes = pendDisplay(data.pend);
   campos.periodoPendiente = data.periodo || "—";
   campos.anioLicencia = data.periodo || "—";
   campos.estado = data.estado || "";
@@ -299,6 +299,48 @@ function cellText(dt,r,c){
   if(v==null || v==="") return "";
   if(v instanceof Date) return fmtFecha(v);
   return String(v).trim();
+}
+
+function normName(s){
+  return String(s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
+}
+
+function pendDisplay(v){
+  const raw = v == null ? "" : String(v).trim();
+  if(!raw || raw === "-" || raw === "—" || raw.toLowerCase() === "n/a" || raw === "***") return "0";
+  const n = parseInt(raw.replace(/[^\d-]/g,''), 10);
+  if(!isNaN(n) && n < 0) return "0";
+  return raw;
+}
+
+/** Busca en CONTROL los días pendientes del período para ese legajo/nombre. */
+function buscarPendientesControl(leg, empleado, periodo, cb){
+  const per = String(periodo||"").trim();
+  const idx = ({"2023":2,"2024":3,"2025":4,"2026":5})[per];
+  if(idx == null){ cb("0"); return; }
+  const url = `https://docs.google.com/spreadsheets/d/${CONFIG.sheetId}/gviz/tq`
+    + `?sheet=${encodeURIComponent("CONTROL")}&headers=0&range=${encodeURIComponent("A3:F")}`;
+  const query = new google.visualization.Query(url);
+  query.send(resp=>{
+    if(resp.isError()){ cb("0"); return; }
+    const dt = resp.getDataTable();
+    const wantLeg = String(leg||"").trim();
+    const wantNom = normName(empleado);
+    let found = "";
+    for(let r=0;r<dt.getNumberOfRows();r++){
+      const l = cellText(dt,r,0);
+      const n = cellText(dt,r,1);
+      if(!l || !n || normName(n)==="EMPLEADOS") continue;
+      if((wantLeg && l === wantLeg && (!wantNom || normName(n)===wantNom || normName(n).includes(wantNom.slice(0,10))))
+        || (!wantLeg && wantNom && normName(n)===wantNom)
+        || (wantNom && normName(n)===wantNom)){
+        // Prefer exact name match; allow leg match for Servinorte
+        if(wantNom && normName(n)===wantNom){ found = cellText(dt,r,idx); break; }
+        if(!found && wantLeg && l === wantLeg) found = cellText(dt,r,idx);
+      }
+    }
+    cb(pendDisplay(found));
+  });
 }
 
 function cargarDesdeRegistro(){
@@ -341,7 +383,14 @@ function cargarDesdeRegistro(){
       setEstado("No hay solicitudes con datos en REGISTRO.","err");
       return;
     }
+    // Primero pinta con 0; luego completa pendientes reales desde CONTROL
+    data.pend = data.pend || "0";
     aplicarCampos(data, "última fila de REGISTRO");
+    buscarPendientesControl(data.leg, data.empleado, data.periodo, (pend)=>{
+      campos.diasPendientes = pendDisplay(pend);
+      render();
+      setEstado(`Autocompletado desde última fila de REGISTRO · Pendientes ${campos.diasPendientes}. Descargá PDF o imprimí.`,"ok");
+    });
   });
 }
 

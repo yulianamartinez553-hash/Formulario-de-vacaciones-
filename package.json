@@ -1,0 +1,7 @@
+{
+  "name": "formulario-de-vacaciones",
+  "private": true,
+  "dependencies": {
+    "@vercel/edge": "^1.2.1"
+  }
+}

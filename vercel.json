@@ -2,8 +2,10 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
+    { "source": "/", "destination": "/index.html" },
     { "source": "/control", "destination": "/index.html" },
     { "source": "/control_vacaciones_servinorte.html", "destination": "/index.html" },
+    { "source": "/rrhh", "destination": "/formulario.html" },
     { "source": "/formulario", "destination": "/formulario.html" },
     { "source": "/formulario.html", "destination": "/formulario.html" }
   ],

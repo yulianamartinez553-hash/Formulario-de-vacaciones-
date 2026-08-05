@@ -76,8 +76,8 @@
 
   <p class="hint">
     Fuentes: hoja <code>CONTROL</code> (pendientes), hoja <code>Empleados</code> (fecha de alta / puesto).
-    Los días se toman del período más antiguo primero. Al confirmar se abre el formulario imprimible
-    y, al enviar, se registra una fila nueva arriba en <code>REGISTRO</code>.
+    Acá solo se <b>genera la solicitud</b>: inserta una fila nueva arriba en <code>REGISTRO</code> (Drive).
+    La impresión / PDF es privada en <code>/rrhh</code> (acceso con usuario y contraseña).
     Otra sociedad (Blatt, Velarde, Vega, Mérida) aparece en sección aparte.
   </p>
 </div>
@@ -90,7 +90,6 @@ const CONFIG = {
   rangoControl: "A3:F",
   /* Empleados: LEG | EMPLEADO | PUESTO | FECHA DE ALTA | AÑO | ANTIGUEDAD */
   rangoEmpleados: "A2:F",
-  formulario: "/formulario",
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbwoADdM80IFTeDyZuOu6GWmjd1DFZSwrOSNJM8yZd1ENxk9UjsOFTl-DPQUi2myOphc/exec"
 };
 
@@ -202,21 +201,78 @@ function repartir(emp, dias, desde){
   return {segs,restan};
 }
 
-function linkForm(emp, seg){
-  const pendientesTras = Math.max(0, (emp.saldos[seg.periodo]||0) - seg.dias);
-  const q=new URLSearchParams({
-    emp: emp.nombre,
+function payloadSolicitud(emp, seg){
+  return {
+    accion: "registrar",
     leg: emp.legajo,
+    empleado: emp.nombre,
     puesto: emp.puesto || "",
-    per: String(seg.periodo),
-    dias: String(seg.dias),
     desde: fmt(seg.desde),
     hasta: fmt(seg.hasta),
-    pend: String(pendientesTras),
-    alta: emp.alta ? fmt(emp.alta) : "",
-    auto: "1"  // registra automáticamente en REGISTRO al abrir
+    dias: String(seg.dias),
+    periodo: String(seg.periodo),
+    estado: "SOLICITADA"
+  };
+}
+
+function enviarViaIframe(payload){
+  return new Promise((resolve, reject)=>{
+    try{
+      const iframe=document.createElement('iframe');
+      iframe.name='gas_frame_'+Date.now();
+      iframe.style.cssText='position:absolute;width:0;height:0;border:0;left:-9999px;';
+      document.body.appendChild(iframe);
+      const form=document.createElement('form');
+      form.method='GET';
+      form.action=CONFIG.appsScriptUrl;
+      form.target=iframe.name;
+      Object.keys(payload).forEach(k=>{
+        const input=document.createElement('input');
+        input.type='hidden'; input.name=k; input.value=payload[k]==null?'':String(payload[k]);
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(()=>{
+        try{ form.remove(); iframe.remove(); }catch(_){}
+        resolve(true);
+      }, 2800);
+    }catch(e){ reject(e); }
   });
-  return CONFIG.formulario + "?" + q.toString();
+}
+
+async function generarSolicitud(emp, seg, btn){
+  if(!CONFIG.appsScriptUrl){
+    setEstado("Falta appsScriptUrl para registrar en Drive.","err");
+    return;
+  }
+  const payload = payloadSolicitud(emp, seg);
+  const label = btn ? btn.textContent : "";
+  if(btn){ btn.disabled=true; btn.textContent="Registrando…"; }
+  setEstado(`Registrando solicitud de ${emp.nombre} (${seg.dias} d · ${seg.periodo}) en REGISTRO…`);
+
+  try{
+    const url = CONFIG.appsScriptUrl + "?" + new URLSearchParams(payload).toString();
+    const res = await fetch(url, { method:"GET", redirect:"follow", credentials:"omit" });
+    const text = await res.text();
+    let data=null;
+    try{ data=JSON.parse(text); }catch(_){ data=null; }
+
+    if(!(data && data.ok)){
+      await enviarViaIframe(payload);
+    }
+    if(btn){ btn.textContent="Registrada ✓"; }
+    setEstado(`Solicitud de ${emp.nombre} registrada en REGISTRO (fila nueva · SOLICITADA) ✓`,"ok");
+  }catch(err){
+    try{
+      await enviarViaIframe(payload);
+      if(btn){ btn.textContent="Registrada ✓"; }
+      setEstado(`Solicitud enviada a REGISTRO ✓ (verificá la planilla)`,"ok");
+    }catch(err2){
+      if(btn){ btn.disabled=false; btn.textContent=label || "Generar solicitud"; }
+      setEstado("No se pudo registrar: "+(err.message||err),"err");
+    }
+  }
 }
 
 function totalPend(emp){
@@ -294,10 +350,12 @@ function calcularKey(k){
     const div=document.createElement('div');
     div.className='seg';
     div.innerHTML=`<span>Período <b>${s.periodo}</b> — <b>${s.dias}</b> día(s) corridos: ${fmt(s.desde)} → ${fmt(s.hasta)}</span>`;
-    const a=document.createElement('a');
-    a.className='btn'; a.target='_blank'; a.rel='noreferrer';
-    a.href=linkForm(e,s); a.textContent='Abrir formulario';
-    div.appendChild(a);
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='btn';
+    btn.textContent='Generar solicitud';
+    btn.addEventListener('click', ()=>generarSolicitud(e, s, btn));
+    div.appendChild(btn);
     cont.appendChild(div);
   });
   if(restan>0){

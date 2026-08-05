@@ -43,15 +43,10 @@
   .doc-title i{display:block;height:2px;width:48px;background:var(--azul-primario);margin:7px auto 0;}
 
   .fecha{text-align:right;font-size:13.5px;margin-bottom:12px;line-height:1.45;}
-  .meta{
-    margin:0 auto 14px;padding:10px 14px;
-    border:1px solid rgba(31,60,140,.18);border-radius:6px;
-    background:rgba(31,60,140,.03);
-  }
   .legajo,.dest,.puesto{font-family:'Barlow Semi Condensed',sans-serif;font-size:14px;margin-bottom:3px;line-height:1.4;}
   .legajo .k,.dest .k,.puesto .k{font-weight:600;letter-spacing:.4px;color:var(--azul-profundo);}
   .dest .v{font-weight:600;color:#111;}
-  .puesto{margin-bottom:0;}
+  .puesto{margin-bottom:14px;}
 
   .parrafo{font-size:13.5px;line-height:1.55;text-align:center;color:#222;margin:0 auto 10px;text-indent:0;max-width:100%;}
   .campo{display:inline-block;background:var(--resaltado);color:#111;font-weight:700;
@@ -233,11 +228,9 @@ function render(){
           <div class="doc-title">Comunicación de Licencia Anual<i></i></div>
           <p class="fecha"><span class="campo">${esc(campos.ciudad)}</span>, <span class="campo">${esc(campos.fecha)}</span></p>
 
-          <div class="meta">
-            <p class="legajo"><span class="k">LEG</span>&nbsp;&nbsp;<span>${esc(campos.legajo)}</span></p>
-            <p class="dest"><span class="k">SEÑOR:</span>&nbsp;&nbsp;<span class="v">${esc(campos.nombre)}</span></p>
-            <p class="puesto"><span class="k">PUESTO:</span>&nbsp;&nbsp;<span>${esc(campos.puesto)}</span></p>
-          </div>
+          <p class="legajo"><span class="k">LEG</span>&nbsp;&nbsp;<span>${esc(campos.legajo)}</span></p>
+          <p class="dest"><span class="k">SEÑOR:</span>&nbsp;&nbsp;<span class="v">${esc(campos.nombre)}</span></p>
+          <p class="puesto"><span class="k">PUESTO:</span>&nbsp;&nbsp;<span>${esc(campos.puesto)}</span></p>
 
           <p class="parrafo">
             Comunicamos a Ud. que su licencia anual correspondiente al año

@@ -50,6 +50,10 @@
   .hint{font-size:12px;color:var(--gris);margin-top:14px;line-height:1.55;}
   .meta{font-size:12px;color:var(--gris);}
   code{background:#eef1f7;padding:1px 5px;border-radius:4px;}
+  .banner{background:#fff3cd;border:1px solid #e6d28a;color:#6a5400;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;line-height:1.45;}
+  .banner b{color:#4a3a00;}
+  .seg .okmsg{color:#1c7a3a;font-size:13px;}
+  .btn.pdf{background:#0f7a45;}
 </style>
 </head>
 <body>
@@ -71,14 +75,19 @@
     <div class="chips" id="chips"></div>
   </div>
 
+  <div class="banner" id="bannerScript">
+    <b>Para que el registro y el PDF funcionen:</b> en la planilla de Google andá a
+    <b>Extensiones → Apps Script</b>, pegá el contenido actualizado de <code>apps-script/Codigo.gs</code>
+    y hacé <b>Implementar → Administrar implementaciones → Editar → Versión nueva → Implementar</b>.
+    Sin eso, Drive puede insertar filas vacías.
+  </div>
   <div class="estado" id="estado">Cargando saldos…</div>
   <div id="tablas"></div>
 
   <p class="hint">
-    Fuentes: hoja <code>CONTROL</code> (pendientes), hoja <code>Empleados</code> (fecha de alta / puesto).
-    Acá solo se <b>genera la solicitud</b>: inserta una fila nueva arriba en <code>REGISTRO</code> (Drive).
-    La impresión / PDF es privada en <code>/rrhh</code> (acceso con usuario y contraseña).
-    Otra sociedad (Blatt, Velarde, Vega, Mérida) aparece en sección aparte.
+    <b>Generar solicitud</b> escribe LEG, EMPLEADO, PUESTO, DESDE, HASTA, DIAS, PERIODO y ESTADO
+    en una fila nueva arriba de <code>REGISTRO</code>, y crea el <b>PDF en Drive</b> (carpeta
+    “Vacaciones PDF Servinorte”). La vista privada <code>/rrhh</code> sigue disponible para reimprimir.
   </p>
 </div>
 
@@ -215,32 +224,6 @@ function payloadSolicitud(emp, seg){
   };
 }
 
-function enviarViaIframe(payload){
-  return new Promise((resolve, reject)=>{
-    try{
-      const iframe=document.createElement('iframe');
-      iframe.name='gas_frame_'+Date.now();
-      iframe.style.cssText='position:absolute;width:0;height:0;border:0;left:-9999px;';
-      document.body.appendChild(iframe);
-      const form=document.createElement('form');
-      form.method='GET';
-      form.action=CONFIG.appsScriptUrl;
-      form.target=iframe.name;
-      Object.keys(payload).forEach(k=>{
-        const input=document.createElement('input');
-        input.type='hidden'; input.name=k; input.value=payload[k]==null?'':String(payload[k]);
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(()=>{
-        try{ form.remove(); iframe.remove(); }catch(_){}
-        resolve(true);
-      }, 2800);
-    }catch(e){ reject(e); }
-  });
-}
-
 async function generarSolicitud(emp, seg, btn){
   if(!CONFIG.appsScriptUrl){
     setEstado("Falta appsScriptUrl para registrar en Drive.","err");
@@ -249,29 +232,66 @@ async function generarSolicitud(emp, seg, btn){
   const payload = payloadSolicitud(emp, seg);
   const label = btn ? btn.textContent : "";
   if(btn){ btn.disabled=true; btn.textContent="Registrando…"; }
-  setEstado(`Registrando solicitud de ${emp.nombre} (${seg.dias} d · ${seg.periodo}) en REGISTRO…`);
+  setEstado(`Registrando ${emp.nombre}: ${seg.dias}d · ${fmt(seg.desde)}→${fmt(seg.hasta)} · período ${seg.periodo}…`);
 
   try{
-    const url = CONFIG.appsScriptUrl + "?" + new URLSearchParams(payload).toString();
-    const res = await fetch(url, { method:"GET", redirect:"follow", credentials:"omit" });
-    const text = await res.text();
-    let data=null;
-    try{ data=JSON.parse(text); }catch(_){ data=null; }
-
-    if(!(data && data.ok)){
-      await enviarViaIframe(payload);
-    }
-    if(btn){ btn.textContent="Registrada ✓"; }
-    setEstado(`Solicitud de ${emp.nombre} registrada en REGISTRO (fila nueva · SOLICITADA) ✓`,"ok");
-  }catch(err){
+    // POST JSON (más fiable que GET para caracteres especiales)
+    let data = null;
     try{
-      await enviarViaIframe(payload);
-      if(btn){ btn.textContent="Registrada ✓"; }
-      setEstado(`Solicitud enviada a REGISTRO ✓ (verificá la planilla)`,"ok");
-    }catch(err2){
-      if(btn){ btn.disabled=false; btn.textContent=label || "Generar solicitud"; }
-      setEstado("No se pudo registrar: "+(err.message||err),"err");
+      const res = await fetch(CONFIG.appsScriptUrl, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=utf-8" },
+        body: JSON.stringify(payload),
+        redirect: "follow",
+        credentials: "omit"
+      });
+      const text = await res.text();
+      try{ data = JSON.parse(text); }catch(_){ data = null; }
+    }catch(_){ data = null; }
+
+    // Fallback GET si el POST no devolvió JSON
+    if(!(data && typeof data === "object")){
+      const url = CONFIG.appsScriptUrl + "?" + new URLSearchParams(payload).toString();
+      const res = await fetch(url, { method:"GET", redirect:"follow", credentials:"omit" });
+      const text = await res.text();
+      try{ data = JSON.parse(text); }catch(_){ data = null; }
     }
+
+    if(!data){
+      throw new Error("Apps Script no respondió JSON. Reimplementá Codigo.gs (versión nueva).");
+    }
+    if(!data.ok){
+      throw new Error(data.error || "Error al registrar");
+    }
+
+    const w = data.written || [];
+    const resumen = `${w[0]||payload.leg} · ${w[1]||payload.empleado} · ${w[3]||payload.desde}→${w[4]||payload.hasta} · ${w[5]||payload.dias}d · ${w[6]||payload.periodo}`;
+    if(btn){ btn.textContent = "Registrada ✓"; }
+
+    let msg = `Datos grabados en REGISTRO: ${resumen}`;
+    if(data.pdf && data.pdf.url){
+      msg += " · PDF generado en Drive.";
+      setEstado(msg, "ok");
+      // Ofrecer abrir PDF al lado del botón
+      const wrap = btn && btn.parentElement;
+      if(wrap && !wrap.querySelector('a.pdf')){
+        const a = document.createElement('a');
+        a.className = 'btn pdf';
+        a.href = data.pdf.url;
+        a.target = '_blank';
+        a.rel = 'noreferrer';
+        a.textContent = 'Abrir PDF';
+        wrap.appendChild(a);
+      }
+      // Abrir PDF automáticamente
+      window.open(data.pdf.url, '_blank', 'noopener,noreferrer');
+    } else {
+      if(data.pdfError) msg += ` · PDF no generado: ${data.pdfError}`;
+      setEstado(msg, data.pdfError ? "err" : "ok");
+    }
+  }catch(err){
+    if(btn){ btn.disabled=false; btn.textContent=label || "Generar solicitud"; }
+    setEstado("No se registró: "+(err.message||err)+" — pegá el Codigo.gs nuevo y creá una Versión nueva de la app web.","err");
   }
 }
 

@@ -76,6 +76,16 @@ function handle_(data) {
 
     var ss = SpreadsheetApp.openById(SHEET_ID);
     var sh = ss.getSheetByName(HOJA_REGISTRO);
+    if (!sh) {
+      // fallback por si el nombre de hoja cambió de mayúsculas/minúsculas
+      var sheets = ss.getSheets();
+      for (var i = 0; i < sheets.length; i++) {
+        if (String(sheets[i].getName()).toUpperCase() === 'REGISTRO') {
+          sh = sheets[i];
+          break;
+        }
+      }
+    }
     if (!sh) return json_({ ok: false, error: 'No se encontró la hoja REGISTRO.' });
 
     // Inserta arriba (fila 4), empuja el historial hacia abajo
@@ -90,6 +100,7 @@ function handle_(data) {
       periodo,
       estado
     ]]);
+    SpreadsheetApp.flush();
 
     return json_({
       ok: true,

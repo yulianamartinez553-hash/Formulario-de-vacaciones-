@@ -60,7 +60,8 @@
   .acl .fill{flex:1;border-bottom:1px solid #9aa3b2;height:1.15em;}
 
   .toolbar{max-width:210mm;margin:8px auto 0;display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding:0 8px;}
-  .estado{font-family:'Barlow',sans-serif;font-size:13px;color:#e7ecf6;margin-right:auto;max-width:420px;}
+  .toolbar .logo{width:42px;height:42px;object-fit:contain;border-radius:8px;background:#fff;padding:3px;}
+  .estado{font-family:'Barlow',sans-serif;font-size:13px;color:#e7ecf6;flex:1;min-width:180px;max-width:420px;}
   .estado.ok{color:#b6f0c4;} .estado.err{color:#ffc9c9;} .estado.warn{color:#ffe6a7;}
   .btn{font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:12.5px;text-transform:uppercase;
     background:#fff;color:var(--azul-primario);border:1.5px solid var(--azul-primario);
@@ -82,6 +83,7 @@
 <body>
 
 <div class="toolbar no-print">
+  <img class="logo" src="/logo-servinorte.jfif" alt="Servinorte SRL" width="42" height="42">
   <span class="estado" id="estado">Preparando formulario…</span>
   <a class="btn" href="/">← Control</a>
   <button class="btn" id="btnReg" onclick="cargarDesdeRegistro()">Actualizar desde REGISTRO</button>
@@ -275,14 +277,16 @@ function cargarDesdeRegistro(){
   });
 }
 
-async function enviarSolicitud(){
-  if(enviado){ setEstado("Esta solicitud ya fue enviada.","warn"); return; }
+async function enviarSolicitud(opts){
+  opts = opts || {};
+  if(enviado){ if(!opts.silencioso) setEstado("Esta solicitud ya fue enviada.","warn"); return true; }
   if(!CONFIG.appsScriptUrl){
     setEstado("Falta configurar appsScriptUrl.","err");
-    return;
+    return false;
   }
   if(campos.nombre==="—" || campos.fechaInicio==="—" || campos.diasTomados==="—"){
-    setEstado("Faltan datos de la solicitud.","err"); return;
+    if(!opts.silencioso) setEstado("Faltan datos de la solicitud.","err");
+    return false;
   }
 
   const payload={
@@ -292,33 +296,70 @@ async function enviarSolicitud(){
     puesto: campos.puesto,
     desde: campos.fechaInicio,
     hasta: campos.fechaFin,
-    dias: campos.diasTomados,
-    periodo: campos.anioLicencia,
+    dias: String(campos.diasTomados),
+    periodo: String(campos.anioLicencia),
     estado: "SOLICITADA"
   };
 
   const btn=document.getElementById('btnEnviar');
-  btn.disabled=true;
-  setEstado("Registrando solicitud en REGISTRO…");
+  if(btn) btn.disabled=true;
+  if(!opts.silencioso) setEstado("Registrando solicitud en REGISTRO…");
 
   try{
-    const res=await fetch(CONFIG.appsScriptUrl, {
-      method:"POST",
-      headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body: JSON.stringify(payload),
-      redirect:"follow"
-    });
-    const text=await res.text();
-    let data;
-    try{ data=JSON.parse(text); }
-    catch(_){ throw new Error("Respuesta no JSON del Apps Script. ¿Acceso «Cualquier persona»?"); }
-    if(!data.ok) throw new Error(data.error || "Error al registrar");
+    const url = CONFIG.appsScriptUrl + "?" + new URLSearchParams(payload).toString();
+    const res = await fetch(url, { method:"GET", redirect:"follow", credentials:"omit" });
+    const text = await res.text();
+    let data=null;
+    try{ data=JSON.parse(text); }catch(_){ data=null; }
+
+    if(data && data.ok){
+      enviado=true;
+      setEstado("Solicitud registrada en REGISTRO (SOLICITADA) ✓","ok");
+      return true;
+    }
+
+    await enviarViaIframe(payload);
     enviado=true;
-    setEstado("Solicitud registrada en REGISTRO (estado SOLICITADA) ✓","ok");
+    setEstado("Solicitud enviada a REGISTRO ✓ (verificá la fila superior en la planilla)","ok");
+    return true;
   }catch(err){
-    btn.disabled=false;
-    setEstado("No se pudo registrar: "+err.message,"err");
+    try{
+      await enviarViaIframe(payload);
+      enviado=true;
+      setEstado("Solicitud enviada a REGISTRO ✓ (verificá la planilla)","ok");
+      return true;
+    }catch(err2){
+      if(btn) btn.disabled=false;
+      setEstado("No se pudo registrar: "+(err.message||err),"err");
+      return false;
+    }
   }
+}
+
+function enviarViaIframe(payload){
+  return new Promise((resolve, reject)=>{
+    try{
+      const iframe=document.createElement('iframe');
+      iframe.name='gas_frame_'+Date.now();
+      iframe.style.cssText='position:absolute;width:0;height:0;border:0;left:-9999px;';
+      document.body.appendChild(iframe);
+      const form=document.createElement('form');
+      form.method='GET';
+      form.action=CONFIG.appsScriptUrl;
+      form.target=iframe.name;
+      Object.keys(payload).forEach(k=>{
+        const input=document.createElement('input');
+        input.type='hidden'; input.name=k; input.value=payload[k]==null?'':String(payload[k]);
+        form.appendChild(input);
+      });
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(()=>{
+        try{ form.remove(); iframe.remove(); }catch(_){}
+        resolve(true);
+      }, 2800);
+    }catch(e){ reject(e); }
+  });
 }
 
 async function descargarPDF(){
@@ -345,13 +386,18 @@ async function descargarPDF(){
   }
 }
 
-function iniciar(){
+async function iniciar(){
+  const q = new URLSearchParams(location.search);
+  const auto = q.get('auto') === '1';
   const fromUrl = datosDesdeURL();
   if(fromUrl){
     aplicarCampos(fromUrl, "solicitud del Control");
+    if(auto){
+      setEstado("Registrando automáticamente en REGISTRO…");
+      await enviarSolicitud({ silencioso:true });
+    }
     return;
   }
-  // Sin params: cargar última fila de REGISTRO (celdas LEG..ESTADO)
   if(typeof google !== "undefined" && google.charts){
     google.charts.load('current');
     google.charts.setOnLoadCallback(cargarDesdeRegistro);

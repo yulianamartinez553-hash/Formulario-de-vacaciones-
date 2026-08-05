@@ -27,37 +27,49 @@
   }
   .brand-band{position:absolute;left:0;right:0;bottom:16mm;height:57mm;
     background:var(--banda) center bottom/100% 100% no-repeat;z-index:0;pointer-events:none;}
-  .content{position:absolute;top:44mm;left:26mm;right:26mm;z-index:1;}
+  .content{
+    position:absolute;top:40mm;left:0;right:0;z-index:1;
+    display:flex;justify-content:center;
+  }
+  .doc{
+    width:min(148mm, calc(100% - 36mm));
+    max-width:148mm;
+  }
 
-  .copia{display:flex;justify-content:flex-end;margin-bottom:14px;}
-  .copia .tag{font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:2.5px;text-transform:uppercase;
-    border:1.5px solid var(--azul-primario);color:var(--azul-primario);padding:5px 12px;border-radius:4px;}
+  .copia{display:flex;justify-content:flex-end;margin-bottom:10px;}
+  .copia .tag{font-family:'Oswald',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;
+    border:1.5px solid var(--azul-primario);color:var(--azul-primario);padding:4px 10px;border-radius:3px;}
   .copia .tag.fill{background:var(--azul-primario);color:#fff;}
 
-  .doc-title{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:3px;font-size:14px;
-    color:var(--azul-primario);text-transform:uppercase;text-align:center;margin-bottom:26px;}
-  .doc-title i{display:block;height:2px;width:60px;background:var(--azul-primario);margin:9px auto 0;}
+  .doc-title{font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:2.5px;font-size:13.5px;
+    color:var(--azul-primario);text-transform:uppercase;text-align:center;margin-bottom:14px;}
+  .doc-title i{display:block;height:2px;width:48px;background:var(--azul-primario);margin:7px auto 0;}
 
-  .fecha{text-align:right;font-size:14.5px;margin-bottom:22px;}
-  .legajo,.dest,.puesto{font-family:'Barlow Semi Condensed',sans-serif;font-size:15px;margin-bottom:4px;}
-  .legajo .k,.dest .k,.puesto .k{font-weight:600;letter-spacing:.4px;}
+  .fecha{text-align:right;font-size:13.5px;margin-bottom:12px;line-height:1.45;}
+  .meta{
+    margin:0 auto 14px;padding:10px 14px;
+    border:1px solid rgba(31,60,140,.18);border-radius:6px;
+    background:rgba(31,60,140,.03);
+  }
+  .legajo,.dest,.puesto{font-family:'Barlow Semi Condensed',sans-serif;font-size:14px;margin-bottom:3px;line-height:1.4;}
+  .legajo .k,.dest .k,.puesto .k{font-weight:600;letter-spacing:.4px;color:var(--azul-profundo);}
   .dest .v{font-weight:600;color:#111;}
-  .puesto{margin-bottom:28px;}
+  .puesto{margin-bottom:0;}
 
-  .parrafo{font-size:15px;line-height:2.15;text-align:justify;color:#222;margin-bottom:20px;text-indent:44px;}
+  .parrafo{font-size:13.5px;line-height:1.55;text-align:center;color:#222;margin:0 auto 10px;text-indent:0;max-width:100%;}
   .campo{display:inline-block;background:var(--resaltado);color:#111;font-weight:700;
-    text-align:center;min-width:3.4em;padding:2px 12px;margin:0 3px;border-radius:3px;
-    line-height:1.5;white-space:nowrap;vertical-align:baseline;}
-  .nota{font-size:13.5px;color:var(--gris-suave);line-height:1.7;margin-top:4px;}
+    text-align:center;min-width:2.6em;padding:1px 8px;margin:0 2px;border-radius:3px;
+    line-height:1.35;white-space:nowrap;vertical-align:baseline;}
+  .nota{font-size:12px;color:var(--gris-suave);line-height:1.45;margin:2px auto 0;text-align:center;}
 
-  .firmas{display:flex;gap:60px;margin-top:60px;align-items:flex-start;justify-content:space-between;max-width:520px;margin-left:auto;margin-right:auto;}
-  .firma{flex:1;text-align:center;}
-  .firma .linea{border-top:1.4px solid #4a4a4a;margin:0 6px 8px;height:0;}
-  .firma .rot{font-family:'Barlow Semi Condensed',sans-serif;font-size:13.5px;color:#333;letter-spacing:.3px;margin-bottom:6px;}
-  .acl{display:flex;gap:6px;align-items:flex-end;margin-top:12px;
-    font-family:'Barlow Semi Condensed',sans-serif;font-size:12px;color:#444;}
+  .firmas{display:flex;gap:28px;margin:28px auto 0;align-items:flex-start;justify-content:center;max-width:100%;}
+  .firma{flex:1;max-width:210px;text-align:center;}
+  .firma .linea{border-top:1.4px solid #4a4a4a;margin:28px 10px 6px;height:0;}
+  .firma .rot{font-family:'Barlow Semi Condensed',sans-serif;font-size:12.5px;color:#333;letter-spacing:.3px;margin-bottom:4px;}
+  .acl{display:flex;gap:6px;align-items:flex-end;margin-top:8px;
+    font-family:'Barlow Semi Condensed',sans-serif;font-size:11.5px;color:#444;}
   .acl .lbl{white-space:nowrap;}
-  .acl .fill{flex:1;border-bottom:1px solid #9aa3b2;height:1.15em;}
+  .acl .fill{flex:1;border-bottom:1px solid #9aa3b2;height:1.05em;}
 
   .toolbar{max-width:210mm;margin:8px auto 0;display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding:0 8px;}
   .toolbar .logo{width:42px;height:42px;object-fit:contain;border-radius:8px;background:#fff;padding:3px;}
@@ -220,30 +232,34 @@ function render(){
     page.innerHTML=`
       <div class="brand-band"></div>
       <div class="content">
-        <div class="copia"><span class="tag ${c.fill?'fill':''}">${esc(c.tag)}</span></div>
-        <div class="doc-title">Comunicación de Licencia Anual<i></i></div>
-        <p class="fecha"><span class="campo">${esc(campos.ciudad)}</span>, <span class="campo">${esc(campos.fecha)}</span></p>
+        <div class="doc">
+          <div class="copia"><span class="tag ${c.fill?'fill':''}">${esc(c.tag)}</span></div>
+          <div class="doc-title">Comunicación de Licencia Anual<i></i></div>
+          <p class="fecha"><span class="campo">${esc(campos.ciudad)}</span>, <span class="campo">${esc(campos.fecha)}</span></p>
 
-        <p class="legajo"><span class="k">LEG</span>&nbsp;&nbsp;<span>${esc(campos.legajo)}</span></p>
-        <p class="dest"><span class="k">SEÑOR:</span>&nbsp;&nbsp;<span class="v">${esc(campos.nombre)}</span></p>
-        <p class="puesto"><span class="k">PUESTO:</span>&nbsp;&nbsp;<span>${esc(campos.puesto)}</span></p>
+          <div class="meta">
+            <p class="legajo"><span class="k">LEG</span>&nbsp;&nbsp;<span>${esc(campos.legajo)}</span></p>
+            <p class="dest"><span class="k">SEÑOR:</span>&nbsp;&nbsp;<span class="v">${esc(campos.nombre)}</span></p>
+            <p class="puesto"><span class="k">PUESTO:</span>&nbsp;&nbsp;<span>${esc(campos.puesto)}</span></p>
+          </div>
 
-        <p class="parrafo">
-          Comunicamos a Ud. que su licencia anual correspondiente al año
-          <span class="campo">${esc(campos.anioLicencia)}</span> ha sido diagramada para iniciarla el día
-          <span class="campo">${esc(campos.fechaInicio)}</span>, concluyendo la misma el día
-          <span class="campo">${esc(campos.fechaFin)}</span>, debiendo retomar sus tareas habituales el día
-          <span class="campo">${esc(campos.fechaRetorno)}</span>.-
-        </p>
-        <p class="parrafo">
-          Asimismo dejamos constancia que por el período
-          <span class="campo">${esc(campos.periodoPendiente)}</span> quedan pendientes
-          <span class="campo">${esc(campos.diasPendientes)}</span> días de la Licencia Anual
-          (días solicitados en este tramo: <span class="campo">${esc(campos.diasTomados)}</span>).
-        </p>
-        <p class="nota">Los mencionados días serán otorgados de acuerdo a las normativas legales laborales vigentes.</p>
+          <p class="parrafo">
+            Comunicamos a Ud. que su licencia anual correspondiente al año
+            <span class="campo">${esc(campos.anioLicencia)}</span> ha sido diagramada para iniciarla el día
+            <span class="campo">${esc(campos.fechaInicio)}</span>, concluyendo la misma el día
+            <span class="campo">${esc(campos.fechaFin)}</span>, debiendo retomar sus tareas habituales el día
+            <span class="campo">${esc(campos.fechaRetorno)}</span>.-
+          </p>
+          <p class="parrafo">
+            Asimismo dejamos constancia que por el período
+            <span class="campo">${esc(campos.periodoPendiente)}</span> quedan pendientes
+            <span class="campo">${esc(campos.diasPendientes)}</span> días de la Licencia Anual
+            (días solicitados en este tramo: <span class="campo">${esc(campos.diasTomados)}</span>).
+          </p>
+          <p class="nota">Los mencionados días serán otorgados de acuerdo a las normativas legales laborales vigentes.</p>
 
-        <div class="firmas">${FIRMAS.map(bloqueFirma).join("")}</div>
+          <div class="firmas">${FIRMAS.map(bloqueFirma).join("")}</div>
+        </div>
       </div>`;
     cont.appendChild(page);
   });

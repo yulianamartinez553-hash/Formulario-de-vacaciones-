@@ -10,8 +10,9 @@
 Sitio: https://formulario-de-vacaciones.vercel.app/
 
 ### `/rrhh` (privado)
-- Usuario: `rrhh`
-- Contraseña: `ServinorteRRHH2026`
+- Abrí: https://formulario-de-vacaciones.vercel.app/rrhh
+- Clave: `ServinorteRRHH2026`
+- Carga sola la última fila de `REGISTRO` y genera el PDF con el diseño original
 
 ## Flujo
 

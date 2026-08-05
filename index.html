@@ -83,7 +83,8 @@
 
   <p class="hint">
     <b>Generar solicitud</b> solo registra en <code>REGISTRO</code> (LEG, EMPLEADO, PUESTO, DESDE, HASTA, DIAS, PERIODO, ESTADO).
-    Para el PDF con el membrete original: entrá a <code>/rrhh</code> (usuario/clave) — autocompleta con la última fila de REGISTRO.
+    Para el PDF con el membrete original: <a href="/rrhh" target="_blank" rel="noreferrer"><code>/rrhh</code></a>
+    — clave <code>ServinorteRRHH2026</code> — autocompleta con la última fila de REGISTRO.
   </p>
 </div>
 
@@ -257,7 +258,18 @@ async function generarSolicitud(emp, seg, btn){
     const w = data.written || [];
     const resumen = `${w[0]||payload.leg} · ${w[1]||payload.empleado} · ${w[3]||payload.desde}→${w[4]||payload.hasta} · ${w[5]||payload.dias}d · ${w[6]||payload.periodo}`;
     if(btn){ btn.textContent = "Registrada ✓"; }
-    setEstado(`Datos grabados en REGISTRO: ${resumen}. PDF en /rrhh`,"ok");
+    setEstado(`Datos grabados en REGISTRO: ${resumen}`,"ok");
+    // Atajo al PDF (diseño original) con la última fila
+    const wrap = btn && btn.parentElement;
+    if(wrap && !wrap.querySelector('a.rrhh')){
+      const a = document.createElement('a');
+      a.className = 'btn ghost rrhh';
+      a.href = '/rrhh';
+      a.target = '_blank';
+      a.rel = 'noreferrer';
+      a.textContent = 'Abrir PDF /rrhh';
+      wrap.appendChild(a);
+    }
   }catch(err){
     if(btn){ btn.disabled=false; btn.textContent=label || "Generar solicitud"; }
     setEstado("No se registró: "+(err.message||err),"err");

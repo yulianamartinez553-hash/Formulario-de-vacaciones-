@@ -7,6 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Semi+Condensed:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 <style>
@@ -74,39 +76,49 @@
   .btn.solid{background:var(--azul-primario);color:#fff;}
   .btn:disabled{opacity:.45;cursor:not-allowed;}
 
-  /* Evita que el pie del membrete salte a otra hoja en PDF/impresión */
-  body.pdf-export .page,
+  /* Export / print: cada .page = exactamente 1 A4 */
+  body.pdf-export{
+    background:#fff!important;
+  }
+  body.pdf-export .toolbar,
+  body.pdf-export .no-print,
+  body.pdf-export .gate{
+    display:none!important;
+  }
   body.pdf-export #hojas{
-    margin:0!important;padding:0!important;
+    margin:0!important;padding:0!important;width:210mm;
   }
   body.pdf-export .page{
-    box-shadow:none!important;
+    margin:0!important;padding:0!important;box-shadow:none!important;
     width:210mm!important;height:297mm!important;max-height:297mm!important;
-    overflow:hidden!important;
-    page-break-after:always;break-after:page;
+    overflow:hidden!important;page-break-after:always;break-after:page;
     page-break-inside:avoid;break-inside:avoid;
   }
   body.pdf-export .page:last-child{
-    page-break-after:auto;break-after:auto;
+    page-break-after:auto!important;break-after:auto!important;
   }
 
   @page{size:A4;margin:0;}
   @media print{
-    html,body{margin:0!important;padding:0!important;background:#fff!important;width:210mm;}
+    html,body{
+      margin:0!important;padding:0!important;background:#fff!important;
+      width:210mm!important;min-height:0!important;
+    }
     .toolbar,.no-print,.gate{display:none!important;}
-    .app-shell{display:block!important;}
-    #hojas{margin:0!important;padding:0!important;width:210mm;}
+    .app-shell{display:block!important;margin:0!important;padding:0!important;}
+    #hojas{margin:0!important;padding:0!important;width:210mm!important;}
     .page{
-      margin:0!important;padding:0!important;box-shadow:none!important;
+      margin:0!important;padding:0!important;border:0!important;box-shadow:none!important;
       width:210mm!important;height:297mm!important;max-height:297mm!important;
       overflow:hidden!important;
       page-break-after:always!important;break-after:page!important;
+      page-break-before:auto!important;
       page-break-inside:avoid!important;break-inside:avoid!important;
     }
     .page:last-child{
       page-break-after:auto!important;break-after:auto!important;
     }
-    *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
   }
 
   .gate{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#14295E,#1F3C8C 55%,#3a5bb5);
@@ -147,7 +159,7 @@
   <span class="estado" id="estado">RRHH · PDF licencia (última de REGISTRO)…</span>
   <button class="btn" id="btnReg" onclick="cargarDesdeRegistro()">Actualizar desde REGISTRO</button>
   <button class="btn solid" id="btnPdf" onclick="descargarPDF()">Descargar PDF</button>
-  <button class="btn" onclick="window.print()">Imprimir</button>
+  <button class="btn" onclick="imprimirHojas()">Imprimir</button>
 </div>
 
 <div id="hojas"></div>
@@ -429,38 +441,95 @@ async function descargarPDF(){
   btn.disabled=true;
   setEstado("Generando PDF…");
   const pages=[...document.querySelectorAll('#hojas .page')];
+  if(!pages.length){
+    setEstado("No hay hojas para exportar.","err");
+    btn.disabled=false;
+    return;
+  }
   document.body.classList.add('pdf-export');
+  const prevStyles=pages.map(p=>p.getAttribute('style'));
   try{
+    // Forzar caja A4 en px (evita redondeo mm → página extra)
+    const W=794, H=1123; // 210x297mm @ 96dpi
+    pages.forEach(p=>{
+      p.style.setProperty('margin','0','important');
+      p.style.setProperty('box-shadow','none','important');
+      p.style.setProperty('width',W+'px','important');
+      p.style.setProperty('height',H+'px','important');
+      p.style.setProperty('max-height',H+'px','important');
+      p.style.setProperty('overflow','hidden','important');
+    });
+    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+
+    const JsPDF=window.jspdf && window.jspdf.jsPDF;
+    const h2c=window.html2canvas;
+    if(!JsPDF || !h2c) throw new Error("Faltan librerías PDF");
+
+    const pdf=new JsPDF({unit:'mm', format:'a4', orientation:'portrait', compress:true});
     const nombre=(campos.nombre||"licencia").replace(/[^\wáéíóúñÁÉÍÓÚÑ]+/g,"_").slice(0,40);
-    const filename=`Licencia_${nombre}_${campos.anioLicencia||""}.pdf`;
-    const opt={
-      margin:0,
-      filename,
-      image:{type:'jpeg', quality:0.98},
-      html2canvas:{
+
+    for(let i=0;i<pages.length;i++){
+      const canvas=await h2c(pages[i],{
         scale:2,
         useCORS:true,
-        letterRendering:true,
+        backgroundColor:'#ffffff',
+        width:W,
+        height:H,
+        windowWidth:W,
+        windowHeight:H,
         scrollX:0,
         scrollY:0,
-        windowWidth:794,
-        windowHeight:1123
-      },
-      jsPDF:{unit:'mm', format:'a4', orientation:'portrait'}
-    };
-    /* Una hoja A4 por copia: evita que el pie del membrete genere páginas extra */
-    let worker=html2pdf().set(opt).from(pages[0]).toPdf();
-    for(let i=1;i<pages.length;i++){
-      worker=worker.get('pdf').then(pdf=>{ pdf.addPage(); }).from(pages[i]).toContainer().toCanvas().toPdf();
+        x:0,
+        y:0
+      });
+      // Recortar a proporción exacta A4 por si el canvas salió más alto
+      const targetRatio=W/H;
+      let sw=canvas.width, sh=canvas.height;
+      if(sw/sh > targetRatio){ sw=Math.round(sh*targetRatio); }
+      else { sh=Math.round(sw/targetRatio); }
+      const cut=document.createElement('canvas');
+      cut.width=sw; cut.height=sh;
+      cut.getContext('2d').drawImage(canvas,0,0,sw,sh,0,0,sw,sh);
+      const img=cut.toDataURL('image/jpeg',0.98);
+      if(i>0) pdf.addPage('a4','portrait');
+      pdf.addImage(img,'JPEG',0,0,210,297,undefined,'FAST');
     }
-    await worker.save();
-    setEstado("PDF descargado ✓","ok");
+    pdf.save(`Licencia_${nombre}_${campos.anioLicencia||""}.pdf`);
+    setEstado("PDF descargado ✓ ("+pages.length+" hojas)","ok");
   }catch(err){
     setEstado("No se pudo generar el PDF: "+err.message+" — usá Imprimir → Guardar como PDF.","err");
   }finally{
+    pages.forEach((p,i)=>{
+      if(prevStyles[i]==null) p.removeAttribute('style');
+      else p.setAttribute('style', prevStyles[i]);
+    });
     document.body.classList.remove('pdf-export');
     btn.disabled=false;
   }
+}
+
+function imprimirHojas(){
+  const pages=[...document.querySelectorAll('#hojas .page')];
+  document.body.classList.add('pdf-export');
+  const prevStyles=pages.map(p=>p.getAttribute('style'));
+  pages.forEach(p=>{
+    p.style.setProperty('margin','0','important');
+    p.style.setProperty('box-shadow','none','important');
+    p.style.setProperty('width','210mm','important');
+    p.style.setProperty('height','297mm','important');
+    p.style.setProperty('max-height','297mm','important');
+    p.style.setProperty('overflow','hidden','important');
+  });
+  const cleanup=()=>{
+    pages.forEach((p,i)=>{
+      if(prevStyles[i]==null) p.removeAttribute('style');
+      else p.setAttribute('style', prevStyles[i]);
+    });
+    document.body.classList.remove('pdf-export');
+    window.removeEventListener('afterprint', cleanup);
+  };
+  window.addEventListener('afterprint', cleanup);
+  setTimeout(()=>{ window.print(); setTimeout(cleanup, 1500); }, 50);
 }
 
 function iniciar(){

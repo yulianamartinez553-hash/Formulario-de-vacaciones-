@@ -55,6 +55,7 @@
     text-align:center;min-width:2.6em;padding:1px 8px;margin:0 2px;border-radius:3px;
     line-height:1.35;white-space:nowrap;vertical-align:baseline;}
   .nota{font-size:12px;color:var(--gris-suave);line-height:1.55;margin:4px auto 0;text-align:justify;}
+  .tramo{font-size:13.5px;line-height:1.55;text-align:justify;color:#222;margin:14px auto 0;}
 
   .firmas{display:flex;gap:48px;margin:72px 0 0;align-items:flex-start;justify-content:space-between;width:100%;max-width:100%;}
   .firma{flex:0 1 40%;max-width:none;text-align:center;}
@@ -144,7 +145,7 @@
   <form class="gate-card" id="gateForm" autocomplete="on">
     <img src="/logo-servinorte.jfif" alt="Servinorte">
     <h1>RRHH · Formulario PDF</h1>
-    <p>Versión <b>v2026-08-05v</b> · Firmas: Encargado de Área + Empleado · Pendientes en 0</p>
+    <p>Versión <b>v2026-08-05w</b> · Firmas: Encargado de Área + Empleado · Pendientes en 0</p>
     <p>Ingresá la clave para generar el PDF con los datos de la última solicitud de REGISTRO.</p>
     <label for="clave">Clave de acceso</label>
     <input id="clave" name="password" type="password" placeholder="Clave RRHH" required>
@@ -284,9 +285,9 @@ function render(){
           <p class="parrafo">
             Asimismo dejamos constancia que por el período
             <span class="campo">${esc(campos.periodoPendiente)}</span> quedan pendientes
-            <span class="campo">${esc(campos.diasPendientes)}</span> días de la Licencia Anual
-            (días solicitados en este tramo: <span class="campo">${esc(campos.diasTomados)}</span>).
+            <span class="campo">${esc(campos.diasPendientes)}</span> días de su Licencia Anual Ordinaria.
           </p>
+          <p class="tramo">Días solicitados en este tramo: <span class="campo">${esc(campos.diasTomados)}</span>.</p>
           <p class="nota">Los mencionados días serán otorgados de acuerdo a las normativas legales laborales vigentes.</p>
 
           <div class="firmas">${FIRMAS.map(bloqueFirma).join("")}</div>

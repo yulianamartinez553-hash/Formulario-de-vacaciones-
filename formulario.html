@@ -9,7 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Barlow+Semi+Condensed:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 <style>
   :root{
@@ -259,6 +258,11 @@ function render(){
   const cont=document.getElementById('hojas'); cont.innerHTML="";
   COPIAS.forEach(c=>{
     const page=document.createElement('div'); page.className='page';
+    // Fondo inline (html2canvas no resuelve bien var(--membrete))
+    try{
+      const mem=getComputedStyle(document.documentElement).getPropertyValue('--membrete').trim();
+      if(mem) page.style.background='#fff '+mem+' center/100% 100% no-repeat';
+    }catch(_e){}
     page.innerHTML=`
       <div class="content">
         <div class="doc">
@@ -436,6 +440,30 @@ function cargarDesdeRegistro(){
   });
 }
 
+async function getPdfLibs(){
+  const h2c=window.html2canvas;
+  const JsPDF=(window.jspdf && window.jspdf.jsPDF) || window.jsPDF || null;
+  if(h2c && JsPDF) return {h2c, JsPDF};
+  // Reintento breve por si los scripts aún cargan
+  await new Promise(r=>setTimeout(r,300));
+  return {
+    h2c: window.html2canvas,
+    JsPDF: (window.jspdf && window.jspdf.jsPDF) || window.jsPDF || null
+  };
+}
+
+function triggerBlobDownload(blob, filename){
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;
+  a.download=filename;
+  a.rel='noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+
 async function descargarPDF(){
   const btn=document.getElementById('btnPdf');
   btn.disabled=true;
@@ -446,58 +474,56 @@ async function descargarPDF(){
     btn.disabled=false;
     return;
   }
+
+  const libs=await getPdfLibs();
+  if(!libs.h2c || !libs.JsPDF){
+    setEstado("No se cargaron las librerías PDF. Recargá la página (Ctrl+Shift+R) e intentá de nuevo.","err");
+    btn.disabled=false;
+    return;
+  }
+
   document.body.classList.add('pdf-export');
   const prevStyles=pages.map(p=>p.getAttribute('style'));
   try{
-    // Forzar caja A4 en px (evita redondeo mm → página extra)
-    const W=794, H=1123; // 210x297mm @ 96dpi
+    const mem=getComputedStyle(document.documentElement).getPropertyValue('--membrete').trim();
     pages.forEach(p=>{
-      p.style.setProperty('margin','0','important');
-      p.style.setProperty('box-shadow','none','important');
-      p.style.setProperty('width',W+'px','important');
-      p.style.setProperty('height',H+'px','important');
-      p.style.setProperty('max-height',H+'px','important');
-      p.style.setProperty('overflow','hidden','important');
+      p.style.margin='0';
+      p.style.boxShadow='none';
+      p.style.width='210mm';
+      p.style.height='297mm';
+      p.style.maxHeight='297mm';
+      p.style.overflow='hidden';
+      if(mem) p.style.background='#fff '+mem+' center/100% 100% no-repeat';
     });
-    await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+    await new Promise(r=>setTimeout(r,100));
 
-    const JsPDF=window.jspdf && window.jspdf.jsPDF;
-    const h2c=window.html2canvas;
-    if(!JsPDF || !h2c) throw new Error("Faltan librerías PDF");
-
-    const pdf=new JsPDF({unit:'mm', format:'a4', orientation:'portrait', compress:true});
+    const pdf=new libs.JsPDF({unit:'mm', format:'a4', orientation:'portrait'});
     const nombre=(campos.nombre||"licencia").replace(/[^\wáéíóúñÁÉÍÓÚÑ]+/g,"_").slice(0,40);
+    const filename=`Licencia_${nombre}_${campos.anioLicencia||""}.pdf`;
 
     for(let i=0;i<pages.length;i++){
-      const canvas=await h2c(pages[i],{
-        scale:2,
+      setEstado("Generando PDF… hoja "+(i+1)+"/"+pages.length);
+      const canvas=await libs.h2c(pages[i],{
+        scale:1.25,
         useCORS:true,
+        allowTaint:true,
         backgroundColor:'#ffffff',
-        width:W,
-        height:H,
-        windowWidth:W,
-        windowHeight:H,
+        logging:false,
         scrollX:0,
-        scrollY:0,
-        x:0,
-        y:0
+        scrollY:0
       });
-      // Recortar a proporción exacta A4 por si el canvas salió más alto
-      const targetRatio=W/H;
-      let sw=canvas.width, sh=canvas.height;
-      if(sw/sh > targetRatio){ sw=Math.round(sh*targetRatio); }
-      else { sh=Math.round(sw/targetRatio); }
-      const cut=document.createElement('canvas');
-      cut.width=sw; cut.height=sh;
-      cut.getContext('2d').drawImage(canvas,0,0,sw,sh,0,0,sw,sh);
-      const img=cut.toDataURL('image/jpeg',0.98);
-      if(i>0) pdf.addPage('a4','portrait');
-      pdf.addImage(img,'JPEG',0,0,210,297,undefined,'FAST');
+      const img=canvas.toDataURL('image/jpeg',0.93);
+      if(i>0) pdf.addPage();
+      pdf.addImage(img,'JPEG',0,0,210,297);
     }
-    pdf.save(`Licencia_${nombre}_${campos.anioLicencia||""}.pdf`);
+
+    // download via blob (más compatible que save())
+    const blob=pdf.output('blob');
+    triggerBlobDownload(blob, filename);
     setEstado("PDF descargado ✓ ("+pages.length+" hojas)","ok");
   }catch(err){
-    setEstado("No se pudo generar el PDF: "+err.message+" — usá Imprimir → Guardar como PDF.","err");
+    console.error('PDF error', err);
+    setEstado("No se pudo generar el PDF: "+(err && err.message ? err.message : err)+". Usá Imprimir → Guardar como PDF.","err");
   }finally{
     pages.forEach((p,i)=>{
       if(prevStyles[i]==null) p.removeAttribute('style');

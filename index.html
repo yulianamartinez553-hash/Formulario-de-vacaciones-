@@ -214,7 +214,7 @@
   <img class="logo" src="/logo-servinorte.jfif" alt="Servinorte SRL" width="58" height="58">
   <div>
     <h1>Control de Vacaciones</h1>
-    <div class="sub">SERVINORTE SRL · Saldos por período · LCT Arts. 150/151 · <b>v2026-08-06a</b></div>
+    <div class="sub">SERVINORTE SRL</div>
   </div>
 </header>
 
@@ -226,19 +226,13 @@
 
   <div class="filtros">
     <span class="lbl">Pendiente</span>
-    <button type="button" class="chip" id="chip-2024" onclick="setFiltro(2024)">Pendiente 2024</button>
-    <button type="button" class="chip" id="chip-2025" onclick="setFiltro(2025)">Pendiente 2025</button>
-    <button type="button" class="chip" id="chip-2026" onclick="setFiltro(2026)">Pendiente 2026</button>
+    <button type="button" class="chip" id="chip-2024" onclick="setFiltro(2024)">2024</button>
+    <button type="button" class="chip" id="chip-2025" onclick="setFiltro(2025)">2025</button>
+    <button type="button" class="chip" id="chip-2026" onclick="setFiltro(2026)">2026</button>
     <div class="sector-wrap">
       <button type="button" class="sector-btn" id="sectorBtn" onclick="toggleSectorMenu()">Sector: Todos</button>
       <div class="sector-menu" id="sectorMenu"></div>
     </div>
-  </div>
-
-  <div class="banner" id="bannerScript">
-    <b>Si el registro falla:</b> planilla → <b>Extensiones → Apps Script</b> → pegá
-    <code>apps-script/Codigo.gs</code> → <b>Implementar → Versión nueva</b>.
-    El PDF se genera solo en <code>/rrhh</code>.
   </div>
   <div class="estado" id="estado">Cargando saldos…</div>
   <div id="tablas"></div>
@@ -837,7 +831,7 @@ async function cargar(){
     }
 
     empleados=out;
-    setEstado(`Saldos cargados: ${empleados.length} personas · ${conAlta} con alta/sector de Empleados ✓`,"ok");
+    setEstado(`${empleados.length} Empleados`,"ok");
     syncChips();
     pintar();
   }catch(err){

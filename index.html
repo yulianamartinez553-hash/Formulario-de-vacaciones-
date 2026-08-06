@@ -236,12 +236,6 @@
   </div>
   <div class="estado" id="estado">Cargando saldos…</div>
   <div id="tablas"></div>
-
-  <p class="hint">
-    <b>Solicitar</b> registra en <code>REGISTRO</code> (LEG, EMPLEADO, PUESTO, DESDE, HASTA, DIAS, PERIODO, ESTADO).
-    PDF: <a href="/rrhh" target="_blank" rel="noreferrer"><code>/rrhh</code></a>
-    — clave <code>ServinorteRRHH2026</code>.
-  </p>
 </div>
 
 <div class="modal-backdrop" id="modal" hidden>
@@ -411,6 +405,32 @@ function payloadSolicitud(emp, seg){
   };
 }
 
+async function aplicarDescuentoLocal(emp, periodo, dias, controlResp){
+  const p=Number(periodo);
+  const d=Number(dias)||0;
+  let nuevo=null;
+  if(controlResp && controlResp.nuevo!=null && Number(controlResp.periodo)===p){
+    nuevo=Number(controlResp.nuevo);
+  } else {
+    nuevo=Math.max(0, (emp.saldos[p]||0) - d);
+  }
+  emp.saldos[p]=nuevo;
+  if(emp.raw) emp.raw[p]=String(nuevo);
+  const k=keyOf(emp);
+  const ref=empleados.find(x=>keyOf(x)===k);
+  if(ref && ref!==emp){
+    ref.saldos[p]=nuevo;
+    if(ref.raw) ref.raw[p]=String(nuevo);
+  }
+  if(modalEmp && keyOf(modalEmp)===k){
+    modalEmp.saldos[p]=nuevo;
+    if((modalEmp.saldos[Number(document.getElementById('m-periodo').value)]||0)<=0){
+      document.getElementById('m-periodo').value=String(periodoPrioritario(modalEmp));
+    }
+  }
+  pintar();
+}
+
 async function generarSolicitud(emp, seg, btn){
   if(!CONFIG.appsScriptUrl){
     setEstado("Falta appsScriptUrl para registrar en Drive.","err");
@@ -421,38 +441,51 @@ async function generarSolicitud(emp, seg, btn){
   if(btn){ btn.disabled=true; btn.textContent="Registrando…"; }
   setEstado(`Registrando ${emp.nombre}: ${seg.dias}d · ${fmt(seg.desde)}→${fmt(seg.hasta)} · período ${seg.periodo}…`);
   const msg=document.getElementById('m-msg');
-  if(msg) msg.innerHTML = `<div class="oknote">Registrando en REGISTRO…</div>`;
+  if(msg) msg.innerHTML = `<div class="oknote">Registrando en REGISTRO y descontando saldo…</div>`;
 
   try{
     let data = null;
-    try{
-      const res = await fetch(CONFIG.appsScriptUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify(payload),
-        redirect: "follow",
-        credentials: "omit"
-      });
-      const text = await res.text();
-      try{ data = JSON.parse(text); }catch(_){ data = null; }
-    }catch(_){ data = null; }
+    // Un solo intento POST (text/plain evita preflight CORS y es más rápido)
+    const res = await fetch(CONFIG.appsScriptUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload),
+      redirect: "follow",
+      credentials: "omit",
+      keepalive: true
+    });
+    const text = await res.text();
+    try{ data = JSON.parse(text); }catch(_){ data = null; }
 
+    // Fallback GET solo si el POST no devolvió JSON
     if(!(data && typeof data === "object")){
       const url = CONFIG.appsScriptUrl + "?" + new URLSearchParams(payload).toString();
-      const res = await fetch(url, { method:"GET", redirect:"follow", credentials:"omit" });
-      const text = await res.text();
-      try{ data = JSON.parse(text); }catch(_){ data = null; }
+      const res2 = await fetch(url, { method:"GET", redirect:"follow", credentials:"omit" });
+      const text2 = await res2.text();
+      try{ data = JSON.parse(text2); }catch(_){ data = null; }
     }
 
-    if(!data) throw new Error("Apps Script no respondió JSON. Reimplementá Codigo.gs (versión nueva).");
+    if(!data) throw new Error("Apps Script no respondió JSON. Pegá Codigo.gs e implementá Versión nueva.");
     if(!data.ok) throw new Error(data.error || "Error al registrar");
 
+    // Descuento inmediato en pantalla (y lo confirmado por CONTROL si vino)
+    await aplicarDescuentoLocal(emp, seg.periodo, seg.dias, data.control);
+
     const w = data.written || [];
-    const resumen = `${w[0]||payload.leg} · ${w[1]||payload.empleado} · ${w[3]||payload.desde}→${w[4]||payload.hasta} · ${w[5]||payload.dias}d · ${w[6]||payload.periodo}`;
+    const saldoInfo = data.control
+      ? ` · CONTROL ${data.control.periodo}: ${data.control.anterior}→${data.control.nuevo}`
+      : ` · saldo local actualizado`;
+    const resumen = `${w[0]||payload.leg} · ${w[1]||payload.empleado} · ${w[3]||payload.desde}→${w[4]||payload.hasta} · ${w[5]||payload.dias}d · ${w[6]||payload.periodo}${saldoInfo}`;
     if(btn){ btn.textContent = "Registrada ✓"; }
-    setEstado(`Datos grabados en REGISTRO: ${resumen}`,"ok");
+    setEstado(`Registrado: ${resumen}`,"ok");
     if(msg){
-      msg.innerHTML = `<div class="oknote">Registrada en Drive ✓ · <a href="/rrhh" target="_blank" rel="noreferrer">Abrir PDF /rrhh</a></div>`;
+      let extra = '';
+      if(data.control){
+        extra = ` · Quedan <b>${data.control.nuevo}</b> días en ${data.control.periodo}`;
+      } else {
+        extra = ` · Saldo actualizado en pantalla. Para grabarlo también en CONTROL: Apps Script → <b>Versión nueva</b>`;
+      }
+      msg.innerHTML = `<div class="oknote">Registrada en Drive ✓${extra} · <a href="/rrhh" target="_blank" rel="noreferrer">Abrir PDF /rrhh</a></div>`;
     }
     return true;
   }catch(err){
@@ -579,7 +612,7 @@ function pintar(){
 
   block('Servinorte SRL', principal);
   if(otra.length || empleados.some(esOtra)){
-    block('Otra sociedad (bajo control RRHH)', otra);
+    block('SERVINORTE REPUESTOS SA.', otra);
   }
   renderSectorMenu();
 }

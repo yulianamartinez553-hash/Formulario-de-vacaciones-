@@ -9,49 +9,203 @@
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=Barlow+Semi+Condensed:wght@500;600&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/charts/loader.js"></script>
 <style>
-  :root{--azul:#1F3C8C;--azul-prof:#14295E;--gris:#5A5A5A;--linea:#e2e7f0;--fondo:#eef1f7;}
+  :root{
+    --azul:#1F3C8C; --azul-prof:#14295E; --azul-soft:#3a5bb5;
+    --gris:#5A5A5A; --linea:#e2e7f0; --fondo:#eef1f7;
+  }
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Barlow',system-ui,sans-serif;color:#222;background:var(--fondo);}
-  header{background:var(--azul-prof);color:#fff;padding:18px 26px;display:flex;align-items:center;gap:16px;}
-  header .logo{width:58px;height:58px;object-fit:contain;flex:none;border-radius:10px;background:#fff;padding:4px;}
-  header h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:2px;font-size:22px;text-transform:uppercase;}
-  header .sub{font-size:12.5px;color:#c7d0e6;letter-spacing:.5px;}
-  .wrap{max-width:1100px;margin:0 auto;padding:22px 20px 60px;}
-  .tools{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-bottom:16px;}
-  .search{flex:1;min-width:220px;display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--linea);border-radius:10px;padding:10px 14px;}
-  .search input{border:none;outline:none;font-size:15px;width:100%;font-family:'Barlow',sans-serif;}
-  .chips{display:flex;gap:8px;flex-wrap:wrap;}
-  .chip{font-family:'Barlow Semi Condensed',sans-serif;font-size:13px;letter-spacing:.5px;border:1.5px solid var(--azul);color:var(--azul);background:#fff;border-radius:20px;padding:6px 14px;cursor:pointer;user-select:none;}
+  body{font-family:'Barlow',system-ui,sans-serif;color:#222;background:var(--fondo);min-height:100vh;}
+  header{background:var(--azul-prof);color:#fff;padding:16px 18px;display:flex;align-items:center;gap:14px;}
+  header .logo{width:52px;height:52px;object-fit:contain;flex:none;border-radius:10px;background:#fff;padding:4px;}
+  header h1{font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:1.5px;font-size:clamp(18px,4.5vw,24px);text-transform:uppercase;}
+  header .sub{font-size:11.5px;color:#c7d0e6;letter-spacing:.4px;margin-top:2px;}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px 14px 70px;}
+
+  .search-hero{
+    display:flex;align-items:center;gap:12px;background:#fff;
+    border:2px solid #cfd8ea;border-radius:16px;padding:14px 16px;
+    box-shadow:0 8px 24px rgba(20,41,94,.08);margin-bottom:14px;
+  }
+  .search-hero span{font-size:20px;opacity:.7;}
+  .search-hero input{
+    border:none;outline:none;width:100%;font-family:'Barlow',sans-serif;
+    font-size:17px;font-weight:500;color:#14295E;background:transparent;
+  }
+  .search-hero input::placeholder{color:#9aa6bd;font-weight:400;}
+
+  .filtros{
+    display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:14px;
+  }
+  .filtros .lbl{
+    font-family:'Oswald',sans-serif;font-size:13px;letter-spacing:1px;
+    text-transform:uppercase;color:var(--azul-prof);margin-right:2px;
+  }
+  .chip{
+    font-family:'Barlow Semi Condensed',sans-serif;font-size:13px;letter-spacing:.4px;
+    border:1.5px solid var(--azul);color:var(--azul);background:#fff;
+    border-radius:999px;padding:8px 14px;cursor:pointer;user-select:none;
+  }
   .chip.on{background:var(--azul);color:#fff;}
-  .estado{font-size:13px;color:var(--gris);margin:2px 2px 12px;}
+  .sector-wrap{position:relative;margin-left:auto;}
+  .sector-btn{
+    font-family:'Barlow Semi Condensed',sans-serif;font-size:13px;letter-spacing:.4px;
+    border:1.5px solid var(--azul);color:var(--azul);background:#fff;
+    border-radius:999px;padding:8px 14px;cursor:pointer;min-width:120px;
+    display:inline-flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .sector-btn::after{content:"▾";font-size:11px;}
+  .sector-menu{
+    display:none;position:absolute;right:0;top:calc(100% + 6px);z-index:40;
+    background:#fff;border:1px solid var(--linea);border-radius:12px;
+    box-shadow:0 14px 34px rgba(20,41,94,.16);min-width:210px;max-height:260px;overflow:auto;
+    padding:6px;
+  }
+  .sector-menu.open{display:block;}
+  .sector-menu button{
+    display:block;width:100%;text-align:left;border:none;background:transparent;
+    font:inherit;font-size:14px;padding:10px 12px;border-radius:8px;cursor:pointer;color:#222;
+  }
+  .sector-menu button:hover,.sector-menu button.on{background:rgba(31,60,140,.08);color:var(--azul-prof);}
+
+  .estado{font-size:13px;color:var(--gris);margin:0 2px 12px;}
   .estado.ok{color:#1c7a3a;} .estado.err{color:#b52a2a;}
-  .grupo{font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:13px;text-transform:uppercase;color:var(--azul-prof);margin:22px 0 8px;}
-  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--linea);border-radius:12px;overflow:hidden;}
-  th,td{padding:11px 12px;font-size:14px;text-align:left;border-bottom:1px solid #eef1f7;}
-  th{font-family:'Barlow Semi Condensed',sans-serif;text-transform:uppercase;letter-spacing:.6px;font-size:11.5px;color:var(--gris);background:#f7f9fd;}
-  th.per,td.per{text-align:center;width:64px;}
-  tr:hover td{background:#f9fbff;}
-  .num{font-weight:700;}
-  .pend{display:inline-block;min-width:26px;padding:2px 8px;border-radius:6px;background:rgba(31,60,140,.10);color:var(--azul-prof);font-weight:700;}
-  .zero{color:#b8bfcc;}
-  .na{color:#b8bfcc;font-size:12px;}
-  .btn{font-family:'Oswald',sans-serif;letter-spacing:.8px;font-size:11.5px;text-transform:uppercase;background:var(--azul);color:#fff;border:none;padding:8px 14px;border-radius:7px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-block;}
-  .btn.ghost{background:#fff;color:var(--azul);border:1.5px solid var(--azul);}
-  .btn:disabled{opacity:.4;cursor:not-allowed;}
-  .panel td{background:#f2f6ff!important;}
-  .panel .box{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;}
-  .fld{display:flex;flex-direction:column;gap:4px;}
-  .fld label{font-size:11.5px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;}
-  .fld input{font-family:'Barlow',sans-serif;font-size:14px;padding:8px 10px;border:1px solid var(--linea);border-radius:8px;width:140px;}
-  .segs{margin-top:12px;display:flex;flex-direction:column;gap:8px;}
-  .seg{display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13.5px;background:#fff;border:1px solid var(--linea);border-radius:9px;padding:9px 12px;}
-  .seg b{color:var(--azul-prof);}
-  .warn{color:#b52a2a;font-size:13px;margin-top:8px;}
-  .hint{font-size:12px;color:var(--gris);margin-top:14px;line-height:1.55;}
-  .meta{font-size:12px;color:var(--gris);}
+  .grupo{font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:13px;text-transform:uppercase;color:var(--azul-prof);margin:18px 0 10px;}
+  .banner{background:#fff3cd;border:1px solid #e6d28a;color:#6a5400;border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;line-height:1.45;}
+  .hint{font-size:12px;color:var(--gris);margin-top:16px;line-height:1.55;}
   code{background:#eef1f7;padding:1px 5px;border-radius:4px;}
-  .banner{background:#fff3cd;border:1px solid #e6d28a;color:#6a5400;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;line-height:1.45;}
-  .banner b{color:#4a3a00;}
+
+  .lista{display:flex;flex-direction:column;gap:10px;}
+  .row{
+    display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
+    gap:12px;align-items:center;background:#fff;border:1px solid var(--linea);
+    border-radius:14px;padding:14px 14px;box-shadow:0 4px 14px rgba(20,41,94,.04);
+  }
+  .row-left{display:flex;gap:12px;align-items:flex-start;min-width:0;}
+  .leg{
+    font-family:'Oswald',sans-serif;font-weight:700;font-size:28px;line-height:1;
+    color:var(--azul-prof);letter-spacing:.5px;min-width:1.4em;text-align:center;padding-top:2px;
+  }
+  .who{min-width:0;}
+  .nombre{
+    font-family:'Barlow',sans-serif;font-weight:700;font-size:clamp(15px,3.6vw,18px);
+    color:var(--azul);line-height:1.2;word-break:break-word;
+  }
+  .meta-line{margin-top:5px;font-size:12.5px;color:var(--gris);line-height:1.35;}
+  .meta-line b{color:#334;font-weight:600;}
+
+  .row-right{
+    display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap;
+  }
+  .pers{
+    display:flex;gap:6px;align-items:stretch;
+  }
+  .per-box{
+    min-width:52px;text-align:center;padding:6px 8px;border-radius:10px;
+    background:rgba(31,60,140,.06);border:1px solid rgba(31,60,140,.10);
+  }
+  .per-box .y{
+    display:block;font-family:'Oswald',sans-serif;font-size:clamp(15px,3.8vw,20px);
+    color:var(--azul);letter-spacing:.5px;line-height:1;
+  }
+  .per-box .v{
+    display:block;margin-top:4px;font-weight:700;font-size:15px;color:var(--azul-prof);
+  }
+  .per-box .v.zero{color:#b0b8c8;font-weight:600;}
+
+  .btn-sol{
+    position:relative;overflow:hidden;isolation:isolate;
+    font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:12px;text-transform:uppercase;
+    background:linear-gradient(180deg,#2448a0 0%, var(--azul) 55%, #18357a 100%);
+    color:#fff;border:none;padding:11px 14px;border-radius:9px;cursor:pointer;
+    white-space:nowrap;min-width:92px;max-width:110px;box-shadow:0 6px 16px rgba(31,60,140,.28);
+  }
+  .btn-sol:disabled{opacity:.4;cursor:not-allowed;box-shadow:none;}
+  .btn-sol::after{
+    content:"";position:absolute;inset:-40% -60%;
+    background:linear-gradient(115deg, transparent 35%, rgba(180,205,255,.22) 48%, rgba(255,255,255,.34) 50%, rgba(180,205,255,.18) 52%, transparent 65%);
+    transform:translateX(-55%) rotate(8deg);
+    animation:shine 3.8s ease-in-out infinite;
+    pointer-events:none;
+  }
+  .btn-sol.s1::after{animation-delay:.0s; opacity:.9;}
+  .btn-sol.s2::after{animation-delay:1.1s; opacity:.55;}
+  .btn-sol.s3::after{animation-delay:2.2s; opacity:.35;}
+  @keyframes shine{
+    0%{transform:translateX(-70%) rotate(8deg);}
+    55%{transform:translateX(70%) rotate(8deg);}
+    100%{transform:translateX(70%) rotate(8deg);}
+  }
+
+  @media (max-width:720px){
+    .row{grid-template-columns:1fr;gap:12px;}
+    .row-right{justify-content:space-between;}
+    .sector-wrap{margin-left:0;width:100%;}
+    .sector-btn{width:100%;}
+    .sector-menu{left:0;right:0;}
+    .filtros{align-items:stretch;}
+    .per-box{min-width:48px;flex:1;}
+    .pers{flex:1;}
+  }
+
+  /* Modal */
+  .modal-backdrop{
+    position:fixed;inset:0;z-index:1000;
+    background:rgba(12,28,70,.62);backdrop-filter:blur(2px);
+    display:flex;align-items:flex-start;justify-content:center;
+    padding:18px 12px 30px;overflow:auto;
+  }
+  .modal-backdrop[hidden]{display:none!important;}
+  .modal{
+    width:min(520px,100%);background:#fff;border-radius:18px;
+    box-shadow:0 24px 60px rgba(0,0,0,.35);margin-top:8vh;overflow:hidden;
+  }
+  .modal-head{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:16px 18px;background:linear-gradient(160deg,#14295E,#1F3C8C);color:#fff;
+  }
+  .modal-head h2{font-family:'Oswald',sans-serif;font-size:18px;letter-spacing:1px;text-transform:uppercase;}
+  .modal-x{
+    border:none;background:rgba(255,255,255,.14);color:#fff;width:34px;height:34px;
+    border-radius:9px;cursor:pointer;font-size:18px;line-height:1;
+  }
+  .modal-body{padding:16px 18px 20px;}
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .fld{display:flex;flex-direction:column;gap:5px;}
+  .fld.full{grid-column:1/-1;}
+  .fld label{font-size:11.5px;color:var(--gris);text-transform:uppercase;letter-spacing:.5px;}
+  .fld input,.fld select{
+    font-family:'Barlow',sans-serif;font-size:15px;padding:11px 12px;
+    border:1.5px solid var(--linea);border-radius:10px;width:100%;background:#fff;color:#14295E;
+  }
+  .fld input[readonly]{background:#f5f7fb;color:#24365f;}
+  .cal{
+    margin-top:14px;border:1px solid var(--linea);border-radius:14px;padding:12px;
+    background:#f8fafd;
+  }
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .cal-nav button{
+    border:1px solid var(--linea);background:#fff;border-radius:8px;width:34px;height:34px;cursor:pointer;color:var(--azul);
+  }
+  .cal-nav strong{font-family:'Oswald',sans-serif;letter-spacing:.8px;color:var(--azul-prof);text-transform:uppercase;font-size:14px;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-grid .dow{text-align:center;font-size:11px;color:#7a869c;padding:4px 0;font-weight:600;}
+  .cal-grid .day{
+    aspect-ratio:1;border:none;border-radius:9px;background:transparent;cursor:pointer;
+    font:inherit;font-size:13.5px;color:#223;display:flex;align-items:center;justify-content:center;
+  }
+  .cal-grid .day:hover{background:rgba(31,60,140,.08);}
+  .cal-grid .day.out{color:#c0c6d2;cursor:default;}
+  .cal-grid .day.inrange{background:rgba(31,60,140,.12);}
+  .cal-grid .day.sel{background:var(--azul);color:#fff;font-weight:700;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap;}
+  .btn{
+    font-family:'Oswald',sans-serif;letter-spacing:.8px;font-size:12px;text-transform:uppercase;
+    background:var(--azul);color:#fff;border:none;padding:11px 16px;border-radius:9px;cursor:pointer;
+  }
+  .btn.ghost{background:#fff;color:var(--azul);border:1.5px solid var(--azul);}
+  .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .warn{color:#b52a2a;font-size:13px;margin-top:8px;}
+  .oknote{color:#1c7a3a;font-size:13px;margin-top:8px;}
 </style>
 </head>
 <body>
@@ -60,32 +214,75 @@
   <img class="logo" src="/logo-servinorte.jfif" alt="Servinorte SRL" width="58" height="58">
   <div>
     <h1>Control de Vacaciones</h1>
-    <div class="sub">SERVINORTE SRL · Saldos por período · LCT Arts. 150/151 · <b>v2026-08-05c</b></div>
+    <div class="sub">SERVINORTE SRL · Saldos por período · LCT Arts. 150/151 · <b>v2026-08-06a</b></div>
   </div>
 </header>
 
 <div class="wrap">
-  <div class="tools">
-    <div class="search">
-      <span aria-hidden="true">🔎</span>
-      <input id="q" type="text" placeholder="Buscar empleado por nombre o legajo…" oninput="pintar()">
+  <div class="search-hero">
+    <span aria-hidden="true">🔎</span>
+    <input id="q" type="search" placeholder="Buscar por nombre, apellido, legajo o DNI…" oninput="pintar()" autocomplete="off">
+  </div>
+
+  <div class="filtros">
+    <span class="lbl">Pendiente</span>
+    <button type="button" class="chip" id="chip-2024" onclick="setFiltro(2024)">Pendiente 2024</button>
+    <button type="button" class="chip" id="chip-2025" onclick="setFiltro(2025)">Pendiente 2025</button>
+    <button type="button" class="chip" id="chip-2026" onclick="setFiltro(2026)">Pendiente 2026</button>
+    <div class="sector-wrap">
+      <button type="button" class="sector-btn" id="sectorBtn" onclick="toggleSectorMenu()">Sector: Todos</button>
+      <div class="sector-menu" id="sectorMenu"></div>
     </div>
-    <div class="chips" id="chips"></div>
   </div>
 
   <div class="banner" id="bannerScript">
     <b>Si el registro falla:</b> planilla → <b>Extensiones → Apps Script</b> → pegá
     <code>apps-script/Codigo.gs</code> → <b>Implementar → Versión nueva</b>.
-    El PDF se genera solo en <code>/rrhh</code> (diseño original), no acá.
+    El PDF se genera solo en <code>/rrhh</code>.
   </div>
   <div class="estado" id="estado">Cargando saldos…</div>
   <div id="tablas"></div>
 
   <p class="hint">
-    <b>Generar solicitud</b> solo registra en <code>REGISTRO</code> (LEG, EMPLEADO, PUESTO, DESDE, HASTA, DIAS, PERIODO, ESTADO).
-    Para el PDF con el membrete original: <a href="/rrhh" target="_blank" rel="noreferrer"><code>/rrhh</code></a>
-    — clave <code>ServinorteRRHH2026</code> — autocompleta con la última fila de REGISTRO.
+    <b>Solicitar</b> registra en <code>REGISTRO</code> (LEG, EMPLEADO, PUESTO, DESDE, HASTA, DIAS, PERIODO, ESTADO).
+    PDF: <a href="/rrhh" target="_blank" rel="noreferrer"><code>/rrhh</code></a>
+    — clave <code>ServinorteRRHH2026</code>.
   </p>
+</div>
+
+<div class="modal-backdrop" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h2 id="modalTitle">Solicitar vacaciones</h2>
+      <button type="button" class="modal-x" onclick="cerrarModal()" aria-label="Cerrar">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="grid-2">
+        <div class="fld"><label>Legajo</label><input id="m-leg" readonly></div>
+        <div class="fld"><label>Período</label><input id="m-periodo" readonly></div>
+        <div class="fld full"><label>Nombre</label><input id="m-nombre" readonly></div>
+        <div class="fld full"><label>Sector</label><input id="m-sector" readonly></div>
+        <div class="fld"><label>Desde</label><input id="m-desde" type="date" onchange="onFechaManual()"></div>
+        <div class="fld"><label>Hasta</label><input id="m-hasta" type="date" onchange="onFechaManual()"></div>
+        <div class="fld full"><label>Días (corridos)</label><input id="m-dias" readonly></div>
+      </div>
+
+      <div class="cal" id="cal">
+        <div class="cal-nav">
+          <button type="button" onclick="shiftCal(-1)" aria-label="Mes anterior">‹</button>
+          <strong id="calTitle">—</strong>
+          <button type="button" onclick="shiftCal(1)" aria-label="Mes siguiente">›</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+
+      <div id="m-msg"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" onclick="cerrarModal()">Cancelar</button>
+        <button type="button" class="btn" id="m-enviar" onclick="enviarDesdeModal()">Generar solicitud</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -94,12 +291,16 @@ const CONFIG = {
   hojaControl: "CONTROL",
   hojaEmpleados: "Empleados",
   rangoControl: "A3:F",
-  /* Empleados: LEG | EMPLEADO | PUESTO | FECHA DE ALTA | AÑO | ANTIGUEDAD */
+  /* Empleados: LEG | EMPLEADO | PUESTO(sector) | FECHA DE ALTA | AÑO | ANTIGUEDAD */
   rangoEmpleados: "A2:F",
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbwoADdM80IFTeDyZuOu6GWmjd1DFZSwrOSNJM8yZd1ENxk9UjsOFTl-DPQUi2myOphc/exec"
 };
 
-const PERIODOS = [2023, 2024, 2025, 2026];
+/* Orden real de columnas en CONTROL (no cambiar: afecta la lectura) */
+const PERIODOS_HOJA = [2023, 2024, 2025, 2026];
+/* Períodos visibles / filtros / asignación */
+const PERIODOS = [2024, 2025, 2026];
+
 const OTRA_SOCIEDAD = new Set([
   "VELARDE MAURO GASTON",
   "VEGA LEONARDO EZEQUIEL",
@@ -109,13 +310,16 @@ const OTRA_SOCIEDAD = new Set([
 
 let empleados = [];
 let filtroPeriodo = null;
-let abierto = null; // key único
+let filtroSector = null;
+let modalEmp = null;
+let calCursor = new Date();
+let pickStep = 0; // 0=desde, 1=hasta
 
 function norm(s){
   return String(s||"").normalize('NFD').replace(/[\u0300-\u036f]/g,'').toUpperCase().replace(/\s+/g,' ').trim();
 }
 function tokens(s){
-  return norm(s).split(' ').filter(t=>t.length>1);
+  return norm(s).split(/[\s,./-]+/).filter(t=>t.length>0);
 }
 function namesLooseMatch(a,b){
   const na=norm(a), nb=norm(b);
@@ -132,7 +336,6 @@ function keyOf(e){ return e.legajo + "::" + norm(e.nombre); }
 function esOtra(e){ return OTRA_SOCIEDAD.has(norm(e.nombre)); }
 function esOtraNombre(nombre){ return OTRA_SOCIEDAD.has(norm(nombre)); }
 
-/** Empareja CONTROL ↔ Empleados por nombre (flexible) y, si no es otra sociedad, por LEG. */
 function resolverFicha(leg, nombre, byLeg, list){
   if(esOtraNombre(nombre)) return null;
   const exact = list.find(m => norm(m.nombre)===norm(nombre));
@@ -151,45 +354,38 @@ function fmtISO(d){
   const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
   return `${y}-${m}-${day}`;
 }
-
-/* -------- LCT: días correspondientes al período (referencia) -------- */
-function yearsAsOf(alta, asOf){
-  if(!alta || alta>asOf) return null;
-  let y = asOf.getFullYear()-alta.getFullYear();
-  if(asOf.getMonth()<alta.getMonth() || (asOf.getMonth()===alta.getMonth() && asOf.getDate()<alta.getDate())) y--;
-  return Math.max(y,0);
+function sameDay(a,b){
+  return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 }
-function escala(ant){
-  if(ant==null) return 0;
-  if(ant<5) return 14;
-  if(ant<10) return 21;
-  if(ant<20) return 28;
-  return 35;
-}
-function diasHabilesEntre(a,b){
-  let n=0, d=new Date(a);
-  while(d<=b){ const wd=d.getDay(); if(wd!==0 && wd!==6) n++; d.setDate(d.getDate()+1); }
-  return n;
-}
-function diasVacLCT(alta, periodo){
-  if(!alta) return null;
-  const asOf=new Date(periodo,11,31);
-  if(alta>asOf) return 0;
-  const yearStart=new Date(periodo,0,1);
-  const from = alta>yearStart ? alta : yearStart;
-  const habYear = diasHabilesEntre(yearStart, asOf);
-  const habTrab = diasHabilesEntre(from, asOf);
-  const calTrab = Math.floor((asOf-from)/(24*3600*1000))+1;
-  if(habTrab < habYear/2) return Math.floor(calTrab/20);
-  return escala(yearsAsOf(alta, asOf));
-}
-
 function parseAlta(v){
   if(v instanceof Date) return v;
   const s=String(v||"").trim();
   const m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
   if(m){ let a=+m[3]; if(a<100)a+=2000; return new Date(a,(+m[2])-1,+m[1]); }
   return null;
+}
+
+function matchesQuery(e, qRaw){
+  const q = String(qRaw||"").trim();
+  if(!q) return true;
+  const qn = norm(q);
+  const qDigits = q.replace(/\D+/g,'');
+  if(qDigits && String(e.legajo).replace(/\D+/g,'').includes(qDigits)) return true;
+  if(e.dni && String(e.dni).replace(/\D+/g,'').includes(qDigits) && qDigits) return true;
+  const nameToks = tokens(e.nombre);
+  const qToks = tokens(q);
+  if(!qToks.length) return true;
+  // Cada término del buscador puede matchear cualquier parte del nombre
+  return qToks.every(qt =>
+    nameToks.some(nt => nt.includes(qt) || qt.includes(nt)) || norm(e.nombre).includes(qt)
+  );
+}
+
+function periodoPrioritario(emp){
+  for(const p of PERIODOS){
+    if((emp.saldos[p]||0)>0) return p;
+  }
+  return PERIODOS[PERIODOS.length-1];
 }
 
 function repartir(emp, dias, desde){
@@ -224,12 +420,14 @@ function payloadSolicitud(emp, seg){
 async function generarSolicitud(emp, seg, btn){
   if(!CONFIG.appsScriptUrl){
     setEstado("Falta appsScriptUrl para registrar en Drive.","err");
-    return;
+    return false;
   }
   const payload = payloadSolicitud(emp, seg);
   const label = btn ? btn.textContent : "";
   if(btn){ btn.disabled=true; btn.textContent="Registrando…"; }
   setEstado(`Registrando ${emp.nombre}: ${seg.dias}d · ${fmt(seg.desde)}→${fmt(seg.hasta)} · período ${seg.periodo}…`);
+  const msg=document.getElementById('m-msg');
+  if(msg) msg.innerHTML = `<div class="oknote">Registrando en REGISTRO…</div>`;
 
   try{
     let data = null;
@@ -259,20 +457,15 @@ async function generarSolicitud(emp, seg, btn){
     const resumen = `${w[0]||payload.leg} · ${w[1]||payload.empleado} · ${w[3]||payload.desde}→${w[4]||payload.hasta} · ${w[5]||payload.dias}d · ${w[6]||payload.periodo}`;
     if(btn){ btn.textContent = "Registrada ✓"; }
     setEstado(`Datos grabados en REGISTRO: ${resumen}`,"ok");
-    // Atajo al PDF (diseño original) con la última fila
-    const wrap = btn && btn.parentElement;
-    if(wrap && !wrap.querySelector('a.rrhh')){
-      const a = document.createElement('a');
-      a.className = 'btn ghost rrhh';
-      a.href = '/rrhh';
-      a.target = '_blank';
-      a.rel = 'noreferrer';
-      a.textContent = 'Abrir PDF /rrhh';
-      wrap.appendChild(a);
+    if(msg){
+      msg.innerHTML = `<div class="oknote">Registrada en Drive ✓ · <a href="/rrhh" target="_blank" rel="noreferrer">Abrir PDF /rrhh</a></div>`;
     }
+    return true;
   }catch(err){
     if(btn){ btn.disabled=false; btn.textContent=label || "Generar solicitud"; }
     setEstado("No se registró: "+(err.message||err),"err");
+    if(msg) msg.innerHTML = `<div class="warn">No se registró: ${err.message||err}</div>`;
+    return false;
   }
 }
 
@@ -280,136 +473,290 @@ function totalPend(emp){
   return PERIODOS.reduce((a,p)=>a+(emp.saldos[p]||0),0);
 }
 
-function chips(){
-  const c=document.getElementById('chips');
-  c.innerHTML = `<span class="chip ${filtroPeriodo===null?'on':''}" onclick="setFiltro(null)">Todos</span>` +
-    PERIODOS.map(p=>`<span class="chip ${filtroPeriodo===p?'on':''}" onclick="setFiltro(${p})">Debe ${p}</span>`).join("");
+function setFiltro(p){
+  filtroPeriodo = (filtroPeriodo===p ? null : p);
+  syncChips();
+  pintar();
 }
-function setFiltro(p){ filtroPeriodo=p; chips(); pintar(); }
+function syncChips(){
+  PERIODOS.forEach(p=>{
+    const el=document.getElementById('chip-'+p);
+    if(el) el.classList.toggle('on', filtroPeriodo===p);
+  });
+}
 
-function idKey(k){ return btoa(unescape(encodeURIComponent(k))).replace(/=+/g,''); }
+function sectoresDisponibles(){
+  const set=new Set();
+  empleados.forEach(e=>{
+    const s=(e.puesto||"").trim();
+    if(s) set.add(s);
+  });
+  return [...set].sort((a,b)=>a.localeCompare(b,'es'));
+}
 
-function appendEmpleadoRows(body, e){
-  const celdas=PERIODOS.map(p=>{
-    const raw=e.raw[p];
-    if(raw==='***') return `<td class="per"><span class="na">n/a</span></td>`;
-    const v=e.saldos[p]||0;
-    return `<td class="per">${v>0?`<span class="pend">${v}</span>`:`<span class="zero">0</span>`}</td>`;
-  }).join("");
+function renderSectorMenu(){
+  const menu=document.getElementById('sectorMenu');
+  const btn=document.getElementById('sectorBtn');
+  const secs=sectoresDisponibles();
+  const items=[{v:null,l:'Todos'}, ...secs.map(s=>({v:s,l:s}))];
+  menu.innerHTML = items.map(it=>`<button type="button" class="${(filtroSector||null)===(it.v||null)?'on':''}" data-v="${it.v==null?'':encodeURIComponent(it.v)}">${it.l}</button>`).join('');
+  menu.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const raw=b.getAttribute('data-v');
+      filtroSector = raw ? decodeURIComponent(raw) : null;
+      btn.textContent = 'Sector: ' + (filtroSector || 'Todos');
+      menu.classList.remove('open');
+      pintar();
+    });
+  });
+}
+function toggleSectorMenu(){
+  const menu=document.getElementById('sectorMenu');
+  menu.classList.toggle('open');
+}
+document.addEventListener('click', (ev)=>{
+  const wrap=document.querySelector('.sector-wrap');
+  if(wrap && !wrap.contains(ev.target)){
+    document.getElementById('sectorMenu').classList.remove('open');
+  }
+});
+
+function shineClass(i){ return 's' + ((i % 3) + 1); }
+
+function appendEmpleadoCard(listaEl, e, idx){
   const tot=totalPend(e);
   const k=keyOf(e);
-  const kid=idKey(k);
-  const meta = e.alta
-    ? `<div class="meta">Alta ${fmt(e.alta)} · ${e.puesto||"Sin puesto"} · LCT 2026: ${diasVacLCT(e.alta,2026)??"—"} días</div>`
-    : (esOtra(e)
-      ? `<div class="meta">Otra sociedad · sin ficha en Empleados</div>`
-      : `<div class="meta">Sin fecha de alta / puesto en Empleados</div>`);
-
-  const tr=document.createElement('tr');
-  tr.innerHTML=`
-      <td class="num">${e.legajo}</td>
-      <td>${e.nombre}${meta}</td>
-      <td>${e.puesto||"—"}</td>
-      ${celdas}
-      <td class="num">${tot}</td>
-      <td><button class="btn" ${tot>0?'':'disabled'} data-k="${kid}">Solicitar</button></td>`;
-  tr.querySelector('button').addEventListener('click', ()=>solicitar(k));
-  body.appendChild(tr);
-
-  if(abierto!==k) return;
-
-  const iso=fmtISO(new Date());
-  const panel=document.createElement('tr');
-  panel.className='panel';
-  panel.innerHTML=`
-    <td colspan="9">
-      <div class="box">
-        <div class="fld"><label>Días a solicitar</label><input type="number" min="1" id="d-${kid}" value="${Math.min(7,Math.max(1,tot))}"></div>
-        <div class="fld"><label>Fecha de inicio</label><input type="date" id="f-${kid}" value="${iso}"></div>
-        <button class="btn ghost" type="button">Calcular</button>
+  const card=document.createElement('article');
+  card.className='row';
+  const pers=PERIODOS.map(p=>{
+    const raw=e.raw[p];
+    if(raw==='***') return `<div class="per-box"><span class="y">${p}</span><span class="v zero">n/a</span></div>`;
+    const v=e.saldos[p]||0;
+    return `<div class="per-box"><span class="y">${p}</span><span class="v ${v?'' :'zero'}">${v}</span></div>`;
+  }).join('');
+  const sector = e.puesto || "Sin sector";
+  const alta = e.alta ? fmt(e.alta) : "—";
+  card.innerHTML=`
+    <div class="row-left">
+      <div class="leg">${e.legajo}</div>
+      <div class="who">
+        <div class="nombre">${e.nombre}</div>
+        <div class="meta-line"><b>Sector</b> ${sector} · <b>Fecha de alta</b> ${alta}</div>
       </div>
-      <div class="segs" id="segs-${kid}"></div>
-    </td>`;
-  panel.querySelector('button').addEventListener('click', ()=>calcularKey(k));
-  body.appendChild(panel);
-}
-
-function solicitar(k){ abierto = (abierto===k? null : k); pintar(); }
-
-function calcularKey(k){
-  const e=empleados.find(x=>keyOf(x)===k);
-  if(!e) return;
-  const id=idKey(k);
-  const dias=parseInt(document.getElementById('d-'+id).value,10);
-  const fval=document.getElementById('f-'+id).value;
-  const cont=document.getElementById('segs-'+id);
-  if(!dias||dias<1||!fval){ cont.innerHTML=`<div class="warn">Completá días y fecha de inicio.</div>`; return; }
-  const {segs,restan}=repartir(e, dias, toDate(fval));
-  if(!segs.length){ cont.innerHTML=`<div class="warn">Este empleado no tiene días pendientes utilizables.</div>`; return; }
-  cont.innerHTML="";
-  segs.forEach(s=>{
-    const div=document.createElement('div');
-    div.className='seg';
-    div.innerHTML=`<span>Período <b>${s.periodo}</b> — <b>${s.dias}</b> día(s) corridos: ${fmt(s.desde)} → ${fmt(s.hasta)}</span>`;
-    const btn=document.createElement('button');
-    btn.type='button';
-    btn.className='btn';
-    btn.textContent='Generar solicitud';
-    btn.addEventListener('click', ()=>generarSolicitud(e, s, btn));
-    div.appendChild(btn);
-    cont.appendChild(div);
-  });
-  if(restan>0){
-    const w=document.createElement('div');
-    w.className='warn';
-    w.textContent=`Faltan ${restan} día(s): saldo insuficiente en 2023–2026.`;
-    cont.appendChild(w);
-  }
-}
-
-function tablaHTML(lista){
-  const table=document.createElement('table');
-  table.innerHTML=`<thead><tr>
-    <th>Legajo</th><th>Empleado</th><th>Puesto</th>
-    <th class="per">2023</th><th class="per">2024</th><th class="per">2025</th><th class="per">2026</th>
-    <th>Pendiente</th><th></th>
-  </tr></thead>`;
-  const body=document.createElement('tbody');
-  if(!lista.length){
-    body.innerHTML=`<tr><td colspan="9" style="color:#8a93a3">Sin resultados.</td></tr>`;
-  } else {
-    lista.forEach(e=>appendEmpleadoRows(body,e));
-  }
-  table.appendChild(body);
-  return table;
+    </div>
+    <div class="row-right">
+      <div class="pers">${pers}</div>
+      <button type="button" class="btn-sol ${shineClass(idx)}" ${tot>0?'':'disabled'} data-k="${k}">Solicitar</button>
+    </div>`;
+  const btn=card.querySelector('.btn-sol');
+  btn.addEventListener('click', ()=>abrirModal(k));
+  listaEl.appendChild(card);
 }
 
 function pintar(){
-  const q=(document.getElementById('q').value||"").toLowerCase().trim();
+  const q=document.getElementById('q').value||"";
   const filtra=e=>{
-    const okq=!q || e.nombre.toLowerCase().includes(q) || String(e.legajo).toLowerCase().includes(q);
+    const okq=matchesQuery(e, q);
     const okp=filtroPeriodo===null || (e.saldos[filtroPeriodo]||0)>0;
-    return okq && okp;
+    const oks=filtroSector===null || (e.puesto||"").trim()===filtroSector;
+    return okq && okp && oks;
   };
   const principal=empleados.filter(e=>!esOtra(e) && filtra(e));
   const otra=empleados.filter(e=>esOtra(e) && filtra(e));
   const cont=document.getElementById('tablas');
   cont.innerHTML="";
-  const g1=document.createElement('div');
-  g1.className='grupo'; g1.textContent='Servinorte SRL';
-  cont.appendChild(g1);
-  cont.appendChild(tablaHTML(principal));
+
+  const block=(title, arr)=>{
+    const g=document.createElement('div');
+    g.className='grupo'; g.textContent=title;
+    cont.appendChild(g);
+    const lista=document.createElement('div');
+    lista.className='lista';
+    if(!arr.length){
+      const empty=document.createElement('div');
+      empty.className='estado';
+      empty.textContent='Sin resultados.';
+      lista.appendChild(empty);
+    } else {
+      arr.forEach((e,i)=>appendEmpleadoCard(lista,e,i));
+    }
+    cont.appendChild(lista);
+  };
+
+  block('Servinorte SRL', principal);
   if(otra.length || empleados.some(esOtra)){
-    const g2=document.createElement('div');
-    g2.className='grupo'; g2.textContent='Otra sociedad (bajo control RRHH)';
-    cont.appendChild(g2);
-    cont.appendChild(tablaHTML(otra));
+    block('Otra sociedad (bajo control RRHH)', otra);
   }
+  renderSectorMenu();
 }
 
 function setEstado(t,cls){
   const el=document.getElementById('estado');
   el.textContent=t; el.className='estado'+(cls?(' '+cls):'');
+}
+
+function abrirModal(k){
+  const e=empleados.find(x=>keyOf(x)===k);
+  if(!e) return;
+  modalEmp=e;
+  pickStep=0;
+  calCursor=new Date();
+  const periodo=periodoPrioritario(e);
+  document.getElementById('m-leg').value=e.legajo;
+  document.getElementById('m-nombre').value=e.nombre;
+  document.getElementById('m-sector').value=e.puesto||"Sin sector";
+  document.getElementById('m-periodo').value=String(periodo);
+  const hoy=fmtISO(new Date());
+  document.getElementById('m-desde').value=hoy;
+  document.getElementById('m-hasta').value=hoy;
+  syncDias();
+  document.getElementById('m-msg').innerHTML="";
+  document.getElementById('m-enviar').disabled=false;
+  document.getElementById('m-enviar').textContent="Generar solicitud";
+  document.getElementById('modal').hidden=false;
+  renderCal();
+}
+function cerrarModal(){
+  document.getElementById('modal').hidden=true;
+  modalEmp=null;
+}
+document.getElementById('modal').addEventListener('click', (ev)=>{
+  if(ev.target.id==='modal') cerrarModal();
+});
+
+function syncDias(){
+  const a=document.getElementById('m-desde').value;
+  const b=document.getElementById('m-hasta').value;
+  if(!a||!b){ document.getElementById('m-dias').value=""; return; }
+  const da=toDate(a), db=toDate(b);
+  if(db<da){ document.getElementById('m-dias').value=""; return; }
+  const dias=Math.round((db-da)/(24*3600*1000))+1;
+  document.getElementById('m-dias').value=String(dias);
+}
+function onFechaManual(){
+  pickStep=0;
+  syncDias();
+  renderCal();
+}
+
+function shiftCal(delta){
+  calCursor=new Date(calCursor.getFullYear(), calCursor.getMonth()+delta, 1);
+  renderCal();
+}
+
+function renderCal(){
+  const y=calCursor.getFullYear();
+  const m=calCursor.getMonth();
+  const title=document.getElementById('calTitle');
+  const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  title.textContent=`${meses[m]} ${y}`;
+  const grid=document.getElementById('calGrid');
+  const dows=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  let html=dows.map(d=>`<div class="dow">${d}</div>`).join('');
+
+  // Monday-first: JS getDay() Sun=0..Sat=6 → Mon=0
+  const first=new Date(y,m,1);
+  let start=(first.getDay()+6)%7;
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const prevDays=new Date(y,m,0).getDate();
+
+  const desdeVal=document.getElementById('m-desde').value;
+  const hastaVal=document.getElementById('m-hasta').value;
+  const desde=desdeVal?toDate(desdeVal):null;
+  const hasta=hastaVal?toDate(hastaVal):null;
+
+  for(let i=0;i<42;i++){
+    let dayNum, inMonth=true, date;
+    if(i<start){
+      dayNum=prevDays-start+i+1;
+      inMonth=false;
+      date=new Date(y,m-1,dayNum);
+    } else if(i>=start+daysInMonth){
+      dayNum=i-(start+daysInMonth)+1;
+      inMonth=false;
+      date=new Date(y,m+1,dayNum);
+    } else {
+      dayNum=i-start+1;
+      date=new Date(y,m,dayNum);
+    }
+    const cls=['day'];
+    if(!inMonth) cls.push('out');
+    if(desde && hasta && date>=desde && date<=hasta) cls.push('inrange');
+    if((desde && sameDay(date,desde)) || (hasta && sameDay(date,hasta))) cls.push('sel');
+    const iso=fmtISO(date);
+    html+=`<button type="button" class="${cls.join(' ')}" data-iso="${iso}" ${inMonth?'':'disabled'}>${dayNum}</button>`;
+  }
+  grid.innerHTML=html;
+  grid.querySelectorAll('.day:not(.out)').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const iso=btn.getAttribute('data-iso');
+      if(pickStep===0){
+        document.getElementById('m-desde').value=iso;
+        document.getElementById('m-hasta').value=iso;
+        pickStep=1;
+      } else {
+        const a=document.getElementById('m-desde').value;
+        if(toDate(iso)<toDate(a)){
+          document.getElementById('m-desde').value=iso;
+          document.getElementById('m-hasta').value=a;
+        } else {
+          document.getElementById('m-hasta').value=iso;
+        }
+        pickStep=0;
+      }
+      syncDias();
+      renderCal();
+    });
+  });
+}
+
+function enviarDesdeModal(){
+  if(!modalEmp) return;
+  const desdeVal=document.getElementById('m-desde').value;
+  const hastaVal=document.getElementById('m-hasta').value;
+  const periodo=parseInt(document.getElementById('m-periodo').value,10);
+  const msg=document.getElementById('m-msg');
+  if(!desdeVal||!hastaVal){
+    msg.innerHTML=`<div class="warn">Completá desde y hasta.</div>`;
+    return;
+  }
+  const desde=toDate(desdeVal);
+  const hasta=toDate(hastaVal);
+  if(hasta<desde){
+    msg.innerHTML=`<div class="warn">La fecha hasta no puede ser anterior a desde.</div>`;
+    return;
+  }
+  const dias=Math.round((hasta-desde)/(24*3600*1000))+1;
+  const saldo=modalEmp.saldos[periodo]||0;
+  if(dias<1){
+    msg.innerHTML=`<div class="warn">Cantidad de días inválida.</div>`;
+    return;
+  }
+  const btn=document.getElementById('m-enviar');
+  if(dias<=saldo){
+    generarSolicitud(modalEmp, {periodo, dias, desde, hasta}, btn);
+    return;
+  }
+  // Más días que el período prioritario: repartir entre 2024–2026
+  const {segs,restan}=repartir(modalEmp, dias, desde);
+  if(!segs.length){
+    msg.innerHTML=`<div class="warn">No hay saldo pendiente utilizable.</div>`;
+    return;
+  }
+  if(restan>0){
+    msg.innerHTML=`<div class="warn">Saldo insuficiente: faltan ${restan} día(s) en 2024–2026.</div>`;
+    return;
+  }
+  (async ()=>{
+    for(let i=0;i<segs.length;i++){
+      const ok = await generarSolicitud(modalEmp, segs[i], btn);
+      if(!ok) return;
+      if(i<segs.length-1){
+        btn.disabled=false;
+        btn.textContent="Generar solicitud";
+      }
+    }
+  })();
 }
 
 function parseSaldo(v){
@@ -451,8 +798,6 @@ async function cargar(){
       querySheet(CONFIG.hojaControl, CONFIG.rangoControl)
     ]);
 
-    /* Empleados actuales: A=LEG B=EMPLEADO C=PUESTO D=FECHA DE ALTA E=AÑO F=ANTIGUEDAD
-       (ya no hay columna PUESTO duplicada; la alta NO va en la columna E). */
     const list=[];
     const byLeg={};
     for(let r=0;r<dtEmp.getNumberOfRows();r++){
@@ -462,7 +807,8 @@ async function cargar(){
         legajo: String(leg),
         nombre,
         puesto: cellText(dtEmp,r,2).replace(/\s+/g,' ').trim(),
-        alta: parseAlta(cellText(dtEmp,r,3))
+        alta: parseAlta(cellText(dtEmp,r,3)),
+        dni: ""
       };
       list.push(ficha);
       byLeg[String(leg)] = ficha;
@@ -474,7 +820,7 @@ async function cargar(){
       const leg=cellText(dtCtrl,r,0); const nombre=cellText(dtCtrl,r,1);
       if(!leg || !nombre || norm(nombre)==='EMPLEADOS') continue;
       const raw={}, saldos={};
-      PERIODOS.forEach((p,i)=>{
+      PERIODOS_HOJA.forEach((p,i)=>{
         const cell=parseSaldo(cellText(dtCtrl,r,i+2));
         raw[p]=cell.raw; saldos[p]=cell.n;
       });
@@ -485,12 +831,14 @@ async function cargar(){
         nombre: nombre,
         puesto: (m && m.puesto) || "",
         alta: (m && m.alta) || null,
+        dni: (m && m.dni) || "",
         saldos, raw
       });
     }
 
     empleados=out;
-    setEstado(`Saldos cargados: ${empleados.length} personas · ${conAlta} con alta/puesto de Empleados ✓`,"ok");
+    setEstado(`Saldos cargados: ${empleados.length} personas · ${conAlta} con alta/sector de Empleados ✓`,"ok");
+    syncChips();
     pintar();
   }catch(err){
     setEstado("No se pudo leer la planilla. Verificá que sea pública (Cualquiera con el enlace → Lector). "+err.message,"err");
@@ -498,7 +846,7 @@ async function cargar(){
   }
 }
 
-chips();
+syncChips();
 google.charts.load('current');
 google.charts.setOnLoadCallback(cargar);
 </script>

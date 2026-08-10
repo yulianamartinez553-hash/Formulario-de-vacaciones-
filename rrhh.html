@@ -140,6 +140,75 @@
     border-radius:10px;margin-bottom:12px;}
   .gate-card .err{color:#b52a2a;font-size:13px;min-height:1.2em;margin-bottom:8px;}
   .gate-card .btn{width:100%;text-align:center;}
+
+  /* Hub RRHH: registros + alta manual */
+  .hub{
+    max-width:920px;margin:0 auto;padding:18px 14px 40px;color:#e7ecf6;
+  }
+  .hub h2{
+    font-family:'Oswald',sans-serif;letter-spacing:1px;text-transform:uppercase;
+    font-size:20px;margin:0 0 6px;color:#fff;
+  }
+  .hub .sub{font-size:13px;color:#c7d0e6;margin-bottom:16px;line-height:1.4;}
+  .hub-card{
+    background:#fff;color:#222;border-radius:16px;padding:16px;
+    box-shadow:0 12px 30px rgba(0,0,0,.22);margin-bottom:16px;
+  }
+  .hub-card h3{
+    font-family:'Oswald',sans-serif;letter-spacing:.8px;text-transform:uppercase;
+    font-size:14px;color:#14295E;margin:0 0 12px;
+  }
+  .search-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;position:relative;}
+  .search-row input[type="search"], .hub-card input[type="date"], .hub-card input[type="text"]{
+    width:100%;font:inherit;font-size:15px;padding:11px 12px;border:1.5px solid #d5dbe8;
+    border-radius:10px;background:#fff;color:#14295E;
+  }
+  .suggest{
+    display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;
+    background:#fff;border:1px solid #d5dbe8;border-radius:12px;max-height:220px;overflow:auto;
+    box-shadow:0 12px 28px rgba(20,41,94,.18);
+  }
+  .suggest.open{display:block;}
+  .suggest button{
+    display:block;width:100%;text-align:left;border:none;background:transparent;
+    padding:10px 12px;cursor:pointer;font:inherit;font-size:14px;color:#222;
+  }
+  .suggest button:hover{background:rgba(31,60,140,.08);}
+  .suggest button small{display:block;color:#5A5A5A;font-size:12px;margin-top:2px;}
+  .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+  .meta-grid .fld{display:flex;flex-direction:column;gap:4px;}
+  .meta-grid label{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:#5A5A5A;}
+  .meta-grid .val{
+    min-height:42px;border:1.5px solid #e2e7f0;border-radius:10px;background:#f5f7fb;
+    padding:10px 12px;font-weight:600;color:#14295E;display:flex;align-items:center;
+  }
+  .hub-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
+  .hub-actions .btn.solid{background:#1F3C8C;color:#fff;border-color:#1F3C8C;}
+  .hub-msg{font-size:13px;margin-top:10px;min-height:1.2em;}
+  .hub-msg.ok{color:#1c7a3a;} .hub-msg.err{color:#b52a2a;}
+  .reg-tools{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
+  .reg-tools input{flex:1;min-width:180px;}
+  .reg-list{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto;}
+  .reg-item{
+    display:grid;grid-template-columns:72px 1fr auto;gap:10px;align-items:center;
+    border:1px solid #e2e7f0;border-radius:12px;padding:10px 12px;cursor:pointer;background:#fff;
+    text-align:left;font:inherit;width:100%;
+  }
+  .reg-item:hover{border-color:#1F3C8C;background:#f7f9fd;}
+  .reg-item .leg{font-family:'Oswald',sans-serif;font-size:22px;color:#14295E;line-height:1;}
+  .reg-item .nom{font-weight:700;color:#1F3C8C;font-size:14.5px;}
+  .reg-item .det{font-size:12.5px;color:#5A5A5A;margin-top:2px;line-height:1.35;}
+  .reg-item .tag{
+    font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:#14295E;
+    background:rgba(31,60,140,.10);padding:6px 8px;border-radius:8px;white-space:nowrap;
+  }
+  .form-view[hidden], .hub[hidden]{display:none!important;}
+  @media (max-width:640px){
+    .meta-grid{grid-template-columns:1fr;}
+    .reg-item{grid-template-columns:56px 1fr;}
+    .reg-item .tag{grid-column:1/-1;justify-self:start;}
+  }
+
   .app-shell[hidden]{display:none!important;}
 
 </style>
@@ -150,25 +219,64 @@
   <form class="gate-card" id="gateForm" autocomplete="on">
     <img src="/logo-servinorte.jfif" alt="Servinorte">
     <h1>RRHH · Formulario PDF</h1>
-    <p>Versión <b>v2026-08-10b</b> · Firmas: Encargado de Área + Empleado · Pendientes en 0</p>
-    <p>Ingresá la clave para generar el PDF con los datos de la última solicitud de REGISTRO.</p>
+    <p>Versión <b>v2026-08-10c</b> · Registros + formulario PDF</p>
+    <p>Ingresá la clave para ver los registros de vacaciones y generar formularios PDF.</p>
     <label for="clave">Clave de acceso</label>
     <input id="clave" name="password" type="password" placeholder="Clave RRHH" required>
     <div class="err" id="gateErr"></div>
-    <button class="btn solid" type="submit">Entrar y cargar formulario</button>
+    <button class="btn solid" type="submit">Entrar a RRHH</button>
   </form>
 </div>
 
 <div class="app-shell" id="appShell" hidden>
-<div class="toolbar no-print">
-  <img class="logo" src="/logo-servinorte.jfif" alt="Servinorte SRL" width="42" height="42">
-  <span class="estado" id="estado">RRHH · PDF licencia (última de REGISTRO)…</span>
-  <button class="btn" id="btnReg" onclick="cargarDesdeRegistro()">Actualizar desde REGISTRO</button>
-  <button class="btn solid" id="btnPdf" onclick="descargarPDF()">Descargar PDF</button>
-  <button class="btn" onclick="imprimirHojas()">Imprimir</button>
+
+<div class="hub no-print" id="hub">
+  <h2>RRHH · Registros de vacaciones</h2>
+  <p class="sub">Elegí un registro de <b>REGISTRO</b> para abrir el formulario, o buscá un empleado y cargá fechas para generar uno nuevo.</p>
+
+  <div class="hub-card">
+    <h3>Generar registro manual</h3>
+    <div class="search-row">
+      <input id="empSearch" type="search" placeholder="Buscar empleado por nombre o legajo…" autocomplete="off" oninput="onEmpSearch()">
+      <div class="suggest" id="empSuggest"></div>
+    </div>
+    <div class="meta-grid">
+      <div class="fld"><label>Legajo</label><div class="val" id="mLeg">—</div></div>
+      <div class="fld"><label>Antigüedad</label><div class="val" id="mAntig">—</div></div>
+      <div class="fld"><label>Empleado</label><div class="val" id="mNom">—</div></div>
+      <div class="fld"><label>Sector / Puesto</label><div class="val" id="mPuesto">—</div></div>
+      <div class="fld"><label>Desde</label><input id="mDesde" type="date" onchange="syncManualDias()"></div>
+      <div class="fld"><label>Hasta</label><input id="mHasta" type="date" onchange="syncManualDias()"></div>
+      <div class="fld"><label>Días</label><div class="val" id="mDias">—</div></div>
+      <div class="fld"><label>Período</label><div class="val" id="mPeriodo">—</div></div>
+    </div>
+    <div class="hub-actions">
+      <button type="button" class="btn solid" id="btnManual" onclick="generarRegistroManual()" disabled>Generar registro y abrir formulario</button>
+    </div>
+    <div class="hub-msg" id="hubMsg"></div>
+  </div>
+
+  <div class="hub-card">
+    <h3>Vacaciones registradas</h3>
+    <div class="reg-tools">
+      <input id="regFilter" type="search" placeholder="Filtrar registros por empleado o legajo…" oninput="pintarRegistros()">
+      <button type="button" class="btn" onclick="cargarHub()">Actualizar</button>
+    </div>
+    <div class="reg-list" id="regList"><div class="hub-msg">Cargando REGISTRO…</div></div>
+  </div>
 </div>
 
-<div id="hojas"></div>
+<div class="form-view" id="formView" hidden>
+  <div class="toolbar no-print">
+    <img class="logo" src="/logo-servinorte.jfif" alt="Servinorte SRL" width="42" height="42">
+    <span class="estado" id="estado">Formulario listo</span>
+    <button class="btn" onclick="volverHub()">← Registros</button>
+    <button class="btn solid" id="btnPdf" onclick="descargarPDF()">Descargar PDF</button>
+    <button class="btn" onclick="imprimirHojas()">Imprimir</button>
+  </div>
+  <div id="hojas"></div>
+</div>
+
 </div><!-- /app-shell -->
 
 <script>
@@ -205,11 +313,16 @@ function setupGate(){
 const CONFIG = {
   sheetId: "1aaWSfGKGIU1BhZqNjOgLPn2xC3mVp1gULvEXQvCWI_Q",
   hojaRegistro: "REGISTRO",
-  /* Datos desde REGISTRO (última solicitud = primera fila con datos desde A4) */
-  rangoRegistro: "A4:H80",
+  hojaEmpleados: "Empleados",
+  rangoRegistro: "A4:H200",
+  rangoEmpleados: "A2:F",
   ciudad: "Ciudad de Salta",
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbwoADdM80IFTeDyZuOu6GWmjd1DFZSwrOSNJM8yZd1ENxk9UjsOFTl-DPQUi2myOphc/exec"
 };
+
+let registros = [];
+let empleadosHub = [];
+let empSeleccionado = null;
 
 const COPIAS = [
   {tag:"Original · Empleado", fill:true},
@@ -396,54 +509,275 @@ function buscarPendientesControl(leg, empleado, periodo, cb){
   });
 }
 
-function cargarDesdeRegistro(){
-  setEstado("Leyendo última solicitud de REGISTRO…");
-  // Leemos varias filas por si quedaron vacías arriba; tomamos la primera con datos
-  const rango = "A4:H80";
-  const url = `https://docs.google.com/spreadsheets/d/${CONFIG.sheetId}/gviz/tq`
-    + `?sheet=${encodeURIComponent(CONFIG.hojaRegistro)}&headers=0&range=${encodeURIComponent(rango)}`;
-  const query = new google.visualization.Query(url);
-  query.send(resp=>{
-    if(resp.isError()){
-      setEstado("No se pudo leer REGISTRO. Verificá que la planilla sea pública (Lector).","err");
-      return;
-    }
-    const dt = resp.getDataTable();
-    if(!dt || dt.getNumberOfRows()<1){
-      setEstado("REGISTRO no tiene filas de datos.","err");
-      return;
-    }
-    let data = null;
-    for(let r=0; r<dt.getNumberOfRows(); r++){
-      const empleado = cellText(dt,r,1);
-      const leg = cellText(dt,r,0);
-      if(!empleado && !leg) continue;
-      // A=LEG B=EMPLEADO C=PUESTO D=DESDE E=HASTA F=DIAS G=PERIODO H=ESTADO
-      data = {
-        leg: leg,
-        empleado: empleado,
-        puesto: cellText(dt,r,2),
-        desde: cellText(dt,r,3),
-        hasta: cellText(dt,r,4),
-        dias: cellText(dt,r,5),
-        periodo: cellText(dt,r,6),
-        estado: cellText(dt,r,7),
-        pend: ""
-      };
-      break;
-    }
-    if(!data){
-      setEstado("No hay solicitudes con datos en REGISTRO.","err");
-      return;
-    }
-    // Primero pinta con 0; luego completa pendientes reales desde CONTROL
-    data.pend = data.pend || "0";
-    aplicarCampos(data, "última fila de REGISTRO");
-    buscarPendientesControl(data.leg, data.empleado, data.periodo, (pend)=>{
-      campos.diasPendientes = pendDisplay(pend);
-      render();
-      setEstado(`Autocompletado desde última fila de REGISTRO · Pendientes ${campos.diasPendientes}. Descargá PDF o imprimí.`,"ok");
+function querySheet(hoja, rango){
+  const url=`https://docs.google.com/spreadsheets/d/${CONFIG.sheetId}/gviz/tq`
+    +`?sheet=${encodeURIComponent(hoja)}&headers=0&range=${encodeURIComponent(rango)}`;
+  return new Promise((resolve,reject)=>{
+    const query=new google.visualization.Query(url);
+    query.send(resp=>{
+      if(resp.isError()) reject(new Error(resp.getMessage()));
+      else resolve(resp.getDataTable());
     });
+  });
+}
+
+function toISODateInput(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function fromISODateInput(v){
+  if(!v) return null;
+  const [y,m,d]=v.split('-').map(Number);
+  return new Date(y,m-1,d);
+}
+function diasEntreISO(a,b){
+  const da=fromISODateInput(a), db=fromISODateInput(b);
+  if(!da||!db||db<da) return null;
+  return Math.round((db-da)/(24*3600*1000))+1;
+}
+function fmtSlash(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear(); }
+
+function volverHub(){
+  document.getElementById('formView').hidden = true;
+  document.getElementById('hub').hidden = false;
+  setHubMsg('','');
+}
+
+function mostrarFormulario(){
+  document.getElementById('hub').hidden = true;
+  document.getElementById('formView').hidden = false;
+  window.scrollTo(0,0);
+}
+
+function setHubMsg(t, cls){
+  const el=document.getElementById('hubMsg');
+  if(!el) return;
+  el.textContent=t||'';
+  el.className='hub-msg'+(cls?(' '+cls):'');
+}
+
+function matchesEmp(e, q){
+  const s=String(q||'').trim();
+  if(!s) return true;
+  const n=normName(s);
+  const toks=n.split(' ').filter(Boolean);
+  const name=normName(e.nombre);
+  const nameToks=name.split(' ').filter(Boolean);
+  if(String(e.legajo).includes(s.replace(/\s+/g,''))) return true;
+  return toks.every(t => nameToks.some(nt => nt.includes(t) || t.includes(nt)) || name.includes(t));
+}
+
+function onEmpSearch(){
+  const q=document.getElementById('empSearch').value||'';
+  const box=document.getElementById('empSuggest');
+  const hits=empleadosHub.filter(e=>matchesEmp(e,q)).slice(0,12);
+  if(!q.trim() || !hits.length){ box.classList.remove('open'); box.innerHTML=''; return; }
+  box.innerHTML=hits.map((e,i)=>`<button type="button" data-i="${i}"><b>${esc(e.nombre)}</b><small>LEG ${esc(e.legajo)} · ${esc(e.antiguedad||'Sin antigüedad')} · ${esc(e.puesto||'Sin puesto')}</small></button>`).join('');
+  box.classList.add('open');
+  [...box.querySelectorAll('button')].forEach((btn,i)=>{
+    btn.addEventListener('click', ()=>seleccionarEmpleado(hits[i]));
+  });
+}
+
+function seleccionarEmpleado(e){
+  empSeleccionado=e;
+  document.getElementById('empSearch').value=e.nombre;
+  document.getElementById('empSuggest').classList.remove('open');
+  document.getElementById('mLeg').textContent=e.legajo||'—';
+  document.getElementById('mNom').textContent=e.nombre||'—';
+  document.getElementById('mPuesto').textContent=e.puesto||'—';
+  document.getElementById('mAntig').textContent=e.antiguedad||'—';
+  const hoy=new Date();
+  if(!document.getElementById('mDesde').value) document.getElementById('mDesde').value=toISODateInput(hoy);
+  if(!document.getElementById('mHasta').value) document.getElementById('mHasta').value=toISODateInput(hoy);
+  syncManualDias();
+  document.getElementById('btnManual').disabled=false;
+  setHubMsg('Empleado seleccionado. Completá desde/hasta y generá el registro.','ok');
+}
+
+function syncManualDias(){
+  const a=document.getElementById('mDesde').value;
+  const b=document.getElementById('mHasta').value;
+  const dias=diasEntreISO(a,b);
+  document.getElementById('mDias').textContent = dias!=null ? String(dias) : '—';
+  const per = a ? String(fromISODateInput(a).getFullYear()) : '—';
+  document.getElementById('mPeriodo').textContent = per;
+}
+
+async function generarRegistroManual(){
+  if(!empSeleccionado){ setHubMsg('Seleccioná un empleado.','err'); return; }
+  const desdeISO=document.getElementById('mDesde').value;
+  const hastaISO=document.getElementById('mHasta').value;
+  const dias=diasEntreISO(desdeISO, hastaISO);
+  if(!desdeISO||!hastaISO||dias==null){ setHubMsg('Completá fechas válidas (hasta ≥ desde).','err'); return; }
+  const desde=fmtSlash(fromISODateInput(desdeISO));
+  const hasta=fmtSlash(fromISODateInput(hastaISO));
+  const periodo=String(fromISODateInput(desdeISO).getFullYear());
+  const btn=document.getElementById('btnManual');
+  btn.disabled=true;
+  setHubMsg('Registrando en REGISTRO…','');
+  const payload={
+    accion:'registrar',
+    leg: empSeleccionado.legajo,
+    empleado: empSeleccionado.nombre,
+    puesto: empSeleccionado.puesto||'',
+    desde, hasta,
+    dias: String(dias),
+    periodo,
+    estado:'SOLICITADA'
+  };
+  try{
+    let data=null;
+    const res=await fetch(CONFIG.appsScriptUrl,{
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body:JSON.stringify(payload),
+      redirect:'follow',
+      credentials:'omit'
+    });
+    try{ data=JSON.parse(await res.text()); }catch(_){ data=null; }
+    if(!(data&&typeof data==='object')){
+      const url=CONFIG.appsScriptUrl+'?'+new URLSearchParams(payload).toString();
+      const res2=await fetch(url,{method:'GET',redirect:'follow',credentials:'omit'});
+      try{ data=JSON.parse(await res2.text()); }catch(_){ data=null; }
+    }
+    if(!data||!data.ok) throw new Error((data&&data.error)||'No se pudo registrar');
+    const row={
+      leg: payload.leg,
+      empleado: payload.empleado,
+      puesto: payload.puesto,
+      desde: payload.desde,
+      hasta: payload.hasta,
+      dias: payload.dias,
+      periodo: payload.periodo,
+      estado: payload.estado,
+      pend: data.control && data.control.nuevo!=null ? String(data.control.nuevo) : '0'
+    };
+    registros.unshift(row);
+    pintarRegistros();
+    setHubMsg('Registro creado. Abriendo formulario…','ok');
+    abrirRegistro(row);
+  }catch(err){
+    setHubMsg('Error: '+(err.message||err),'err');
+  }finally{
+    btn.disabled=false;
+  }
+}
+
+function pintarRegistros(){
+  const q=(document.getElementById('regFilter').value||'').trim();
+  const list=document.getElementById('regList');
+  const filas=registros.filter(r=>{
+    if(!q) return true;
+    const n=normName(q);
+    return String(r.leg).includes(q) || normName(r.empleado).includes(n) || normName(r.empleado).split(' ').some(t=>t.includes(n)||n.includes(t));
+  });
+  if(!filas.length){
+    list.innerHTML=`<div class="hub-msg">No hay registros${q?' para ese filtro':''}.</div>`;
+    return;
+  }
+  list.innerHTML=filas.map((r,i)=>`
+    <button type="button" class="reg-item" data-i="${i}">
+      <div class="leg">${esc(r.leg||'—')}</div>
+      <div>
+        <div class="nom">${esc(r.empleado||'—')}</div>
+        <div class="det">${esc(r.desde||'—')} → ${esc(r.hasta||'—')} · ${esc(r.dias||'—')} d · Período ${esc(r.periodo||'—')}${r.puesto?(' · '+esc(r.puesto)):''}</div>
+      </div>
+      <div class="tag">${esc(r.estado||'REGISTRO')}</div>
+    </button>`).join('');
+  [...list.querySelectorAll('.reg-item')].forEach((btn,i)=>{
+    btn.addEventListener('click', ()=>abrirRegistro(filas[i]));
+  });
+}
+
+function abrirRegistro(r){
+  const data={
+    leg:r.leg, empleado:r.empleado, puesto:r.puesto,
+    desde:r.desde, hasta:r.hasta, dias:r.dias,
+    periodo:r.periodo, estado:r.estado, pend:r.pend||'0'
+  };
+  aplicarCampos(data, 'REGISTRO');
+  mostrarFormulario();
+  buscarPendientesControl(data.leg, data.empleado, data.periodo, (pend)=>{
+    campos.diasPendientes=pendDisplay(pend);
+    render();
+    setEstado(`Formulario · ${campos.nombre} · Pendientes ${campos.diasPendientes}.`,'ok');
+  });
+}
+
+async function cargarHub(){
+  setHubMsg('Cargando Empleados y REGISTRO…','');
+  const list=document.getElementById('regList');
+  list.innerHTML=`<div class="hub-msg">Cargando REGISTRO…</div>`;
+  try{
+    const [dtEmp, dtReg] = await Promise.all([
+      querySheet(CONFIG.hojaEmpleados, CONFIG.rangoEmpleados),
+      querySheet(CONFIG.hojaRegistro, CONFIG.rangoRegistro)
+    ]);
+    const emps=[];
+    for(let r=0;r<dtEmp.getNumberOfRows();r++){
+      const leg=cellText(dtEmp,r,0), nombre=cellText(dtEmp,r,1);
+      if(!leg||!nombre||normName(nombre)==='EMPLEADO') continue;
+      emps.push({
+        legajo:String(leg),
+        nombre,
+        puesto:cellText(dtEmp,r,2).replace(/\s+/g,' ').trim(),
+        alta:cellText(dtEmp,r,3),
+        antiguedad:cellText(dtEmp,r,5)||cellText(dtEmp,r,4)||''
+      });
+    }
+    empleadosHub=emps;
+
+    const regs=[];
+    for(let r=0;r<dtReg.getNumberOfRows();r++){
+      const leg=cellText(dtReg,r,0), empleado=cellText(dtReg,r,1);
+      if(!leg && !empleado) continue;
+      regs.push({
+        leg, empleado,
+        puesto:cellText(dtReg,r,2),
+        desde:cellText(dtReg,r,3),
+        hasta:cellText(dtReg,r,4),
+        dias:cellText(dtReg,r,5),
+        periodo:cellText(dtReg,r,6),
+        estado:cellText(dtReg,r,7),
+        pend:'0'
+      });
+    }
+    registros=regs;
+    pintarRegistros();
+    setHubMsg(`${registros.length} registros · ${empleadosHub.length} empleados`,'ok');
+  }catch(err){
+    list.innerHTML=`<div class="hub-msg err">No se pudo cargar: ${esc(err.message||err)}</div>`;
+    setHubMsg('Error al leer la planilla.','err');
+  }
+}
+
+function cargarDesdeRegistro(){
+  // compat: recarga hub
+  cargarHub();
+}
+
+function iniciar(){
+  document.getElementById('hub').hidden=false;
+  document.getElementById('formView').hidden=true;
+  const fromUrl=datosDesdeURL();
+  if(fromUrl){
+    aplicarCampos(fromUrl,'datos por URL');
+    mostrarFormulario();
+    return;
+  }
+  if(typeof google!=='undefined' && google.charts){
+    google.charts.load('current');
+    google.charts.setOnLoadCallback(cargarHub);
+  }else{
+    setHubMsg('No se cargó Google Charts.','err');
+  }
+  // cerrar sugerencias al click afuera
+  document.addEventListener('click', (ev)=>{
+    const row=document.querySelector('.search-row');
+    if(row && !row.contains(ev.target)){
+      document.getElementById('empSuggest').classList.remove('open');
+    }
   });
 }
 
@@ -622,21 +956,6 @@ function imprimirHojas(){
   };
   window.addEventListener('afterprint', cleanup);
   setTimeout(()=>{ window.print(); setTimeout(cleanup, 1500); }, 50);
-}
-
-function iniciar(){
-  const fromUrl = datosDesdeURL();
-  if(fromUrl){
-    aplicarCampos(fromUrl, "datos por URL");
-    return;
-  }
-  if(typeof google !== "undefined" && google.charts){
-    google.charts.load('current');
-    google.charts.setOnLoadCallback(cargarDesdeRegistro);
-  } else {
-    setEstado("Cargá la última solicitud desde REGISTRO.","warn");
-    render();
-  }
 }
 
 setupGate();

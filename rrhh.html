@@ -18,7 +18,14 @@
     --membrete:url("/membrete-servinorte.png");
   }
   *{box-sizing:border-box;margin:0;padding:0;}
-  html,body{background:#5b6478;font-family:'Barlow',sans-serif;color:var(--gris-texto);-webkit-font-smoothing:antialiased;}
+  html,body{
+    min-height:100%;
+    font-family:'Barlow',sans-serif;color:var(--gris-texto);-webkit-font-smoothing:antialiased;
+    background:
+      radial-gradient(900px 480px at 8% -5%, rgba(86,140,108,.16), transparent 58%),
+      radial-gradient(720px 420px at 100% 0%, rgba(196,154,90,.13), transparent 52%),
+      linear-gradient(180deg, #f4f7f3 0%, #e8efe8 48%, #f1eee6 100%);
+  }
 
   .page{
     width:210mm;height:297mm;margin:16px auto;position:relative;overflow:hidden;
@@ -68,12 +75,12 @@
 
   .toolbar{max-width:210mm;margin:8px auto 0;display:flex;align-items:center;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding:0 8px;}
   .toolbar .logo{width:42px;height:42px;object-fit:contain;border-radius:8px;background:#fff;padding:3px;}
-  .estado{font-family:'Barlow',sans-serif;font-size:13px;color:#e7ecf6;flex:1;min-width:180px;max-width:420px;}
-  .estado.ok{color:#b6f0c4;} .estado.err{color:#ffc9c9;} .estado.warn{color:#ffe6a7;}
+  .estado{font-family:'Barlow',sans-serif;font-size:13px;color:#3a4a3f;flex:1;min-width:180px;max-width:420px;}
+  .estado.ok{color:#1c7a3a;} .estado.err{color:#b52a2a;} .estado.warn{color:#9a6b00;}
   .btn{font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:12.5px;text-transform:uppercase;
-    background:#fff;color:var(--azul-primario);border:1.5px solid var(--azul-primario);
+    background:#fff;color:#2f5d45;border:1.5px solid #2f5d45;
     padding:9px 16px;border-radius:6px;cursor:pointer;}
-  .btn.solid{background:var(--azul-primario);color:#fff;}
+  .btn.solid{background:#2f5d45;color:#fff;border-color:#2f5d45;}
   .btn:disabled{opacity:.45;cursor:not-allowed;}
 
   /* Export / print: cada .page = exactamente 1 A4 */
@@ -141,49 +148,83 @@
   .gate-card .err{color:#b52a2a;font-size:13px;min-height:1.2em;margin-bottom:8px;}
   .gate-card .btn{width:100%;text-align:center;}
 
-  /* Hub RRHH: registros + alta manual */
+  /* Hub: registros + alta manual */
   .hub{
-    max-width:920px;margin:0 auto;padding:18px 14px 40px;color:#e7ecf6;
+    max-width:920px;margin:0 auto;padding:22px 14px 48px;color:#2a332c;
   }
   .hub h2{
-    font-family:'Oswald',sans-serif;letter-spacing:1px;text-transform:uppercase;
-    font-size:20px;margin:0 0 6px;color:#fff;
+    font-family:'Oswald',sans-serif;letter-spacing:1.2px;text-transform:uppercase;
+    font-size:26px;margin:4px 0 8px;color:#24352c;text-align:center;
   }
-  .hub .sub{font-size:13px;color:#c7d0e6;margin-bottom:16px;line-height:1.4;}
+  .hub .sub{font-size:13.5px;color:#5a675e;margin:0 auto 18px;line-height:1.45;text-align:center;max-width:36em;}
   .hub-card{
-    background:#fff;color:#222;border-radius:16px;padding:16px;
-    box-shadow:0 12px 30px rgba(0,0,0,.22);margin-bottom:16px;
+    background:rgba(255,255,255,.92);color:#222;border-radius:16px;padding:16px;
+    box-shadow:0 10px 28px rgba(40,55,45,.10);margin-bottom:16px;
+    border:1px solid rgba(70,95,80,.12);
   }
   .hub-card h3{
     font-family:'Oswald',sans-serif;letter-spacing:.8px;text-transform:uppercase;
-    font-size:14px;color:#14295E;margin:0 0 12px;
+    font-size:14px;color:#2f5d45;margin:0 0 12px;text-align:center;
   }
   .search-row{display:flex;gap:10px;align-items:center;margin-bottom:12px;position:relative;}
-  .search-row input[type="search"], .hub-card input[type="date"], .hub-card input[type="text"]{
-    width:100%;font:inherit;font-size:15px;padding:11px 12px;border:1.5px solid #d5dbe8;
-    border-radius:10px;background:#fff;color:#14295E;
+  .search-row input[type="search"], .hub-card input[type="text"], .reg-tools input[type="search"]{
+    width:100%;font:inherit;font-size:15px;padding:11px 12px;border:1.5px solid #d5ddd6;
+    border-radius:10px;background:#fff;color:#24352c;
   }
   .suggest{
     display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;
-    background:#fff;border:1px solid #d5dbe8;border-radius:12px;max-height:220px;overflow:auto;
-    box-shadow:0 12px 28px rgba(20,41,94,.18);
+    background:#fff;border:1px solid #d5ddd6;border-radius:12px;max-height:220px;overflow:auto;
+    box-shadow:0 12px 28px rgba(40,55,45,.14);
   }
   .suggest.open{display:block;}
   .suggest button{
     display:block;width:100%;text-align:left;border:none;background:transparent;
     padding:10px 12px;cursor:pointer;font:inherit;font-size:14px;color:#222;
   }
-  .suggest button:hover{background:rgba(31,60,140,.08);}
+  .suggest button:hover{background:rgba(47,93,69,.08);}
   .suggest button small{display:block;color:#5A5A5A;font-size:12px;margin-top:2px;}
   .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
   .meta-grid .fld{display:flex;flex-direction:column;gap:4px;}
   .meta-grid label{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:#5A5A5A;}
   .meta-grid .val{
-    min-height:42px;border:1.5px solid #e2e7f0;border-radius:10px;background:#f5f7fb;
-    padding:10px 12px;font-weight:600;color:#14295E;display:flex;align-items:center;
+    min-height:42px;border:1.5px solid #e2e8e3;border-radius:10px;background:#f4f7f4;
+    padding:10px 12px;font-weight:600;color:#24352c;display:flex;align-items:center;
   }
+  .date-btn{
+    width:100%;min-height:42px;border:1.5px solid #d5ddd6;border-radius:10px;background:#fff;
+    padding:10px 12px;font:inherit;font-size:15px;font-weight:600;color:#24352c;
+    text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  }
+  .date-btn:hover,.date-btn.open{border-color:#2f5d45;background:#f7faf7;}
+  .date-btn .ph{color:#7a867e;font-weight:500;}
+  .date-btn .ico{font-size:15px;opacity:.7;}
+  .cal-wrap{grid-column:1/-1;display:none;margin-top:2px;}
+  .cal-wrap.open{display:block;}
+  .cal{
+    border:1px solid #d5ddd6;border-radius:14px;padding:12px;background:#f7faf7;
+  }
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;}
+  .cal-nav button{
+    border:1px solid #d5ddd6;background:#fff;border-radius:8px;width:34px;height:34px;
+    cursor:pointer;color:#2f5d45;font-size:16px;line-height:1;
+  }
+  .cal-nav strong{
+    font-family:'Oswald',sans-serif;letter-spacing:.8px;color:#24352c;
+    text-transform:capitalize;font-size:15px;font-weight:600;
+  }
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+  .cal-grid .dow{text-align:center;font-size:11px;color:#6a766e;padding:4px 0;font-weight:700;}
+  .cal-grid .day{
+    aspect-ratio:1;border:none;border-radius:9px;background:transparent;cursor:pointer;
+    font:inherit;font-size:13.5px;color:#223;display:flex;align-items:center;justify-content:center;
+  }
+  .cal-grid .day:hover{background:rgba(47,93,69,.10);}
+  .cal-grid .day.out{color:#c0c8c2;cursor:default;}
+  .cal-grid .day.today{box-shadow:inset 0 0 0 1.5px #2f5d45;}
+  .cal-grid .day.inrange{background:rgba(47,93,69,.12);}
+  .cal-grid .day.sel{background:#2f5d45;color:#fff;font-weight:700;}
+  .cal-hint{font-size:12px;color:#5a675e;margin-top:8px;text-align:center;}
   .hub-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
-  .hub-actions .btn.solid{background:#1F3C8C;color:#fff;border-color:#1F3C8C;}
   .hub-msg{font-size:13px;margin-top:10px;min-height:1.2em;}
   .hub-msg.ok{color:#1c7a3a;} .hub-msg.err{color:#b52a2a;}
   .reg-tools{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
@@ -191,16 +232,16 @@
   .reg-list{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto;}
   .reg-item{
     display:grid;grid-template-columns:72px 1fr auto;gap:10px;align-items:center;
-    border:1px solid #e2e7f0;border-radius:12px;padding:10px 12px;cursor:pointer;background:#fff;
+    border:1px solid #e2e8e3;border-radius:12px;padding:10px 12px;cursor:pointer;background:#fff;
     text-align:left;font:inherit;width:100%;
   }
-  .reg-item:hover{border-color:#1F3C8C;background:#f7f9fd;}
-  .reg-item .leg{font-family:'Oswald',sans-serif;font-size:22px;color:#14295E;line-height:1;}
-  .reg-item .nom{font-weight:700;color:#1F3C8C;font-size:14.5px;}
+  .reg-item:hover{border-color:#2f5d45;background:#f7faf7;}
+  .reg-item .leg{font-family:'Oswald',sans-serif;font-size:22px;color:#24352c;line-height:1;}
+  .reg-item .nom{font-weight:700;color:#2f5d45;font-size:14.5px;}
   .reg-item .det{font-size:12.5px;color:#5A5A5A;margin-top:2px;line-height:1.35;}
   .reg-item .tag{
-    font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:#14295E;
-    background:rgba(31,60,140,.10);padding:6px 8px;border-radius:8px;white-space:nowrap;
+    font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:#2f5d45;
+    background:rgba(47,93,69,.10);padding:6px 8px;border-radius:8px;white-space:nowrap;
   }
   .form-view[hidden], .hub[hidden]{display:none!important;}
   @media (max-width:640px){
@@ -219,7 +260,7 @@
   <form class="gate-card" id="gateForm" autocomplete="on">
     <img src="/logo-servinorte.jfif" alt="Servinorte">
     <h1>RRHH · Formulario PDF</h1>
-    <p>Versión <b>v2026-08-10c</b> · Registros + formulario PDF</p>
+    <p>Versión <b>v2026-08-10d</b> · Registros + formulario PDF</p>
     <p>Ingresá la clave para ver los registros de vacaciones y generar formularios PDF.</p>
     <label for="clave">Clave de acceso</label>
     <input id="clave" name="password" type="password" placeholder="Clave RRHH" required>
@@ -231,11 +272,11 @@
 <div class="app-shell" id="appShell" hidden>
 
 <div class="hub no-print" id="hub">
-  <h2>RRHH · Registros de vacaciones</h2>
-  <p class="sub">Elegí un registro de <b>REGISTRO</b> para abrir el formulario, o buscá un empleado y cargá fechas para generar uno nuevo.</p>
+  <h2>Registro de vacaciones</h2>
+  <p class="sub">Elegí un registro para abrir el formulario, o buscá un empleado y cargá las fechas para generar uno nuevo.</p>
 
   <div class="hub-card">
-    <h3>Generar registro manual</h3>
+    <h3>Registro manual</h3>
     <div class="search-row">
       <input id="empSearch" type="search" placeholder="Buscar empleado por nombre o legajo…" autocomplete="off" oninput="onEmpSearch()">
       <div class="suggest" id="empSuggest"></div>
@@ -245,8 +286,31 @@
       <div class="fld"><label>Antigüedad</label><div class="val" id="mAntig">—</div></div>
       <div class="fld"><label>Empleado</label><div class="val" id="mNom">—</div></div>
       <div class="fld"><label>Sector / Puesto</label><div class="val" id="mPuesto">—</div></div>
-      <div class="fld"><label>Desde</label><input id="mDesde" type="date" onchange="syncManualDias()"></div>
-      <div class="fld"><label>Hasta</label><input id="mHasta" type="date" onchange="syncManualDias()"></div>
+      <div class="fld">
+        <label>Desde</label>
+        <button type="button" class="date-btn" id="mDesdeBtn" onclick="abrirCalendario('desde')">
+          <span id="mDesdeLabel" class="ph">Elegir fecha</span><span class="ico" aria-hidden="true">▾</span>
+        </button>
+        <input type="hidden" id="mDesde" value="">
+      </div>
+      <div class="fld">
+        <label>Hasta</label>
+        <button type="button" class="date-btn" id="mHastaBtn" onclick="abrirCalendario('hasta')">
+          <span id="mHastaLabel" class="ph">Elegir fecha</span><span class="ico" aria-hidden="true">▾</span>
+        </button>
+        <input type="hidden" id="mHasta" value="">
+      </div>
+      <div class="cal-wrap" id="calWrap">
+        <div class="cal">
+          <div class="cal-nav">
+            <button type="button" onclick="shiftCal(-1)" aria-label="Mes anterior">‹</button>
+            <strong id="calTitle">Mes</strong>
+            <button type="button" onclick="shiftCal(1)" aria-label="Mes siguiente">›</button>
+          </div>
+          <div class="cal-grid" id="calGrid"></div>
+          <div class="cal-hint" id="calHint">Semana: lunes a domingo · mes actual</div>
+        </div>
+      </div>
       <div class="fld"><label>Días</label><div class="val" id="mDias">—</div></div>
       <div class="fld"><label>Período</label><div class="val" id="mPeriodo">—</div></div>
     </div>
@@ -262,7 +326,7 @@
       <input id="regFilter" type="search" placeholder="Filtrar registros por empleado o legajo…" oninput="pintarRegistros()">
       <button type="button" class="btn" onclick="cargarHub()">Actualizar</button>
     </div>
-    <div class="reg-list" id="regList"><div class="hub-msg">Cargando REGISTRO…</div></div>
+    <div class="reg-list" id="regList"><div class="hub-msg">Cargando registros…</div></div>
   </div>
 </div>
 
@@ -575,7 +639,134 @@ function onEmpSearch(){
   box.innerHTML=hits.map((e,i)=>`<button type="button" data-i="${i}"><b>${esc(e.nombre)}</b><small>LEG ${esc(e.legajo)} · ${esc(e.antiguedad||'Sin antigüedad')} · ${esc(e.puesto||'Sin puesto')}</small></button>`).join('');
   box.classList.add('open');
   [...box.querySelectorAll('button')].forEach((btn,i)=>{
-    btn.addEventListener('click', ()=>seleccionarEmpleado(hits[i]));
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      seleccionarEmpleado(hits[i]);
+    });
+  });
+}
+
+const MESES_ES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const DIAS_ES=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+let calCursor=new Date();
+let calCampo='desde'; // 'desde' | 'hasta'
+
+function fmtFechaLargaES(iso){
+  const d=fromISODateInput(iso);
+  if(!d) return '';
+  return `${d.getDate()} de ${MESES_ES[d.getMonth()]} de ${d.getFullYear()}`;
+}
+function sameDay(a,b){
+  return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+function pintarLabelsFecha(){
+  const a=document.getElementById('mDesde').value;
+  const b=document.getElementById('mHasta').value;
+  const la=document.getElementById('mDesdeLabel');
+  const lb=document.getElementById('mHastaLabel');
+  if(a){ la.textContent=fmtFechaLargaES(a); la.classList.remove('ph'); }
+  else { la.textContent='Elegir fecha'; la.classList.add('ph'); }
+  if(b){ lb.textContent=fmtFechaLargaES(b); lb.classList.remove('ph'); }
+  else { lb.textContent='Elegir fecha'; lb.classList.add('ph'); }
+}
+function abrirCalendario(campo, forzar){
+  calCampo=campo==='hasta'?'hasta':'desde';
+  const wrap=document.getElementById('calWrap');
+  const mismoAbierto=wrap.classList.contains('open') && (
+    (calCampo==='desde' && document.getElementById('mDesdeBtn').classList.contains('open')) ||
+    (calCampo==='hasta' && document.getElementById('mHastaBtn').classList.contains('open'))
+  );
+  if(mismoAbierto && !forzar){
+    wrap.classList.remove('open');
+    document.getElementById('mDesdeBtn').classList.remove('open');
+    document.getElementById('mHastaBtn').classList.remove('open');
+    return;
+  }
+  document.getElementById('mDesdeBtn').classList.toggle('open', calCampo==='desde');
+  document.getElementById('mHastaBtn').classList.toggle('open', calCampo==='hasta');
+  // Sin fecha previa: mostrar el mes actual; si ya hay fecha, ese mes
+  const iso=document.getElementById(calCampo==='desde'?'mDesde':'mHasta').value;
+  const base=(!iso || forzar)? new Date() : fromISODateInput(iso);
+  calCursor=new Date(base.getFullYear(), base.getMonth(), 1);
+  wrap.classList.add('open');
+  document.getElementById('calHint').textContent =
+    calCampo==='desde'
+      ? 'Elegí la fecha desde · semana lunes a domingo'
+      : 'Elegí la fecha hasta · semana lunes a domingo';
+  renderCal();
+}
+function shiftCal(delta){
+  calCursor=new Date(calCursor.getFullYear(), calCursor.getMonth()+delta, 1);
+  renderCal();
+}
+function renderCal(){
+  const y=calCursor.getFullYear();
+  const m=calCursor.getMonth();
+  document.getElementById('calTitle').textContent=`${MESES_ES[m]} ${y}`;
+  const grid=document.getElementById('calGrid');
+  let html=DIAS_ES.map(d=>`<div class="dow">${d}</div>`).join('');
+  const first=new Date(y,m,1);
+  const start=(first.getDay()+6)%7; // lunes = 0
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const prevDays=new Date(y,m,0).getDate();
+  const desdeVal=document.getElementById('mDesde').value;
+  const hastaVal=document.getElementById('mHasta').value;
+  const desde=desdeVal?fromISODateInput(desdeVal):null;
+  const hasta=hastaVal?fromISODateInput(hastaVal):null;
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+
+  for(let i=0;i<42;i++){
+    let dayNum, inMonth=true, date;
+    if(i<start){
+      dayNum=prevDays-start+i+1;
+      inMonth=false;
+      date=new Date(y,m-1,dayNum);
+    }else if(i>=start+daysInMonth){
+      dayNum=i-(start+daysInMonth)+1;
+      inMonth=false;
+      date=new Date(y,m+1,dayNum);
+    }else{
+      dayNum=i-start+1;
+      date=new Date(y,m,dayNum);
+    }
+    const cls=['day'];
+    if(!inMonth) cls.push('out');
+    if(sameDay(date,hoy)) cls.push('today');
+    if(desde && hasta && date>=desde && date<=hasta) cls.push('inrange');
+    if((desde && sameDay(date,desde)) || (hasta && sameDay(date,hasta))) cls.push('sel');
+    const iso=toISODateInput(date);
+    html+=`<button type="button" class="${cls.join(' ')}" data-iso="${iso}"${inMonth?'':' disabled'}>${dayNum}</button>`;
+  }
+  grid.innerHTML=html;
+  grid.querySelectorAll('.day:not([disabled])').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const iso=btn.getAttribute('data-iso');
+      if(calCampo==='desde'){
+        document.getElementById('mDesde').value=iso;
+        const hasta=document.getElementById('mHasta').value;
+        if(!hasta || fromISODateInput(hasta)<fromISODateInput(iso)){
+          document.getElementById('mHasta').value=iso;
+        }
+        calCampo='hasta';
+        document.getElementById('mDesdeBtn').classList.remove('open');
+        document.getElementById('mHastaBtn').classList.add('open');
+        document.getElementById('calHint').textContent='Ahora elegí la fecha hasta · semana lunes a domingo';
+      }else{
+        const desde=document.getElementById('mDesde').value;
+        if(desde && fromISODateInput(iso)<fromISODateInput(desde)){
+          document.getElementById('mDesde').value=iso;
+          document.getElementById('mHasta').value=desde;
+        }else{
+          document.getElementById('mHasta').value=iso;
+        }
+        document.getElementById('calWrap').classList.remove('open');
+        document.getElementById('mDesdeBtn').classList.remove('open');
+        document.getElementById('mHastaBtn').classList.remove('open');
+      }
+      pintarLabelsFecha();
+      syncManualDias();
+      if(document.getElementById('calWrap').classList.contains('open')) renderCal();
+    });
   });
 }
 
@@ -590,9 +781,11 @@ function seleccionarEmpleado(e){
   const hoy=new Date();
   if(!document.getElementById('mDesde').value) document.getElementById('mDesde').value=toISODateInput(hoy);
   if(!document.getElementById('mHasta').value) document.getElementById('mHasta').value=toISODateInput(hoy);
+  pintarLabelsFecha();
   syncManualDias();
   document.getElementById('btnManual').disabled=false;
   setHubMsg('Empleado seleccionado. Completá desde/hasta y generá el registro.','ok');
+  abrirCalendario('desde', true);
 }
 
 function syncManualDias(){
@@ -776,11 +969,22 @@ function iniciar(){
   }else{
     setHubMsg('No se cargó Google Charts.','err');
   }
-  // cerrar sugerencias al click afuera
+  // cerrar sugerencias / calendario al click afuera
   document.addEventListener('click', (ev)=>{
     const row=document.querySelector('.search-row');
     if(row && !row.contains(ev.target)){
       document.getElementById('empSuggest').classList.remove('open');
+    }
+    const enCal = ev.target.closest && (
+      ev.target.closest('#calWrap') ||
+      ev.target.closest('#mDesdeBtn') ||
+      ev.target.closest('#mHastaBtn')
+    );
+    if(!enCal){
+      const wrap=document.getElementById('calWrap');
+      if(wrap) wrap.classList.remove('open');
+      const db=document.getElementById('mDesdeBtn'); if(db) db.classList.remove('open');
+      const hb=document.getElementById('mHastaBtn'); if(hb) hb.classList.remove('open');
     }
   });
 }

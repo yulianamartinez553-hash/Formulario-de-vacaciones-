@@ -1,10 +1,12 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
-  "rewrites": [
-    { "source": "/control", "destination": "/index.html" },
-    { "source": "/control_vacaciones_servinorte.html", "destination": "/index.html" }
+  "redirects": [
+    { "source": "/", "destination": "/rrhh", "permanent": false },
+    { "source": "/control", "destination": "/rrhh", "permanent": false },
+    { "source": "/control_vacaciones_servinorte.html", "destination": "/rrhh", "permanent": false }
   ],
+  "rewrites": [],
   "headers": [
     {
       "source": "/(.*)",

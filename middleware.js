@@ -5,7 +5,7 @@ import { next } from '@vercel/edge';
  * Redirige alias viejos a /rrhh.
  */
 export const config = {
-  matcher: ['/formulario', '/formulario.html']
+  matcher: ['/', '/formulario', '/formulario.html', '/control', '/control_vacaciones_servinorte.html']
 };
 
 export default function middleware(request) {

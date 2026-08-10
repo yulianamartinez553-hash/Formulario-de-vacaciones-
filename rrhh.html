@@ -151,19 +151,27 @@
   .gate-card .err{color:#b52a2a;font-size:13px;min-height:1.2em;margin-bottom:8px;}
   .gate-card .btn{width:100%;text-align:center;}
 
-  /* Hub: registros + alta manual */
+  /* Hub unificado: registro (2/3) + control (1/3) */
   .hub{
-    max-width:920px;margin:0 auto;padding:22px 14px 48px;color:#24355f;
+    max-width:1400px;margin:0 auto;padding:16px 12px 40px;color:#24355f;
   }
-  .hub h2{
+  .hub-split{
+    display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);
+    gap:14px;align-items:start;
+  }
+  .pane{
+    min-width:0;background:rgba(255,255,255,.94);border-radius:16px;padding:14px 14px 16px;
+    box-shadow:0 10px 28px rgba(31,61,129,.10);border:1px solid rgba(31,61,129,.12);
+  }
+  .pane-reg{display:flex;flex-direction:column;gap:12px;}
+  .pane h2{
     font-family:'Oswald',sans-serif;letter-spacing:1.2px;text-transform:uppercase;
-    font-size:26px;margin:4px 0 8px;color:var(--azul-servinorte);text-align:center;
+    font-size:22px;margin:0 0 10px;color:var(--azul-servinorte);text-align:center;
   }
-  .hub .sub{font-size:13.5px;color:#5a6680;margin:0 auto 18px;line-height:1.45;text-align:center;max-width:36em;}
+  .hub .sub{font-size:12.5px;color:#5a6680;margin:0 0 4px;line-height:1.4;text-align:center;}
   .hub-card{
-    background:rgba(255,255,255,.94);color:#222;border-radius:16px;padding:16px;
-    box-shadow:0 10px 28px rgba(31,61,129,.10);margin-bottom:16px;
-    border:1px solid rgba(31,61,129,.12);
+    background:#fff;color:#222;border-radius:12px;padding:12px;
+    border:1px solid rgba(31,61,129,.10);margin:0;
   }
   .hub-card h3{
     font-family:'Oswald',sans-serif;letter-spacing:.8px;text-transform:uppercase;
@@ -241,27 +249,109 @@
   .hub-msg.ok{color:#1c7a3a;} .hub-msg.err{color:#b52a2a;}
   .reg-tools{display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap;}
   .reg-tools input{flex:1;min-width:180px;}
-  .reg-list{display:flex;flex-direction:column;gap:8px;max-height:420px;overflow:auto;}
+  .reg-list{display:flex;flex-direction:column;gap:8px;max-height:min(48vh,420px);overflow:auto;}
   .reg-item{
-    display:grid;grid-template-columns:72px 1fr auto;gap:10px;align-items:center;
-    border:1px solid #e2e7f0;border-radius:12px;padding:10px 12px;cursor:pointer;background:#fff;
+    display:grid;grid-template-columns:56px 1fr auto;gap:8px;align-items:center;
+    border:1px solid #e2e7f0;border-radius:10px;padding:8px 10px;cursor:pointer;background:#fff;
     text-align:left;font:inherit;width:100%;
   }
   .reg-item:hover{border-color:var(--azul-servinorte);background:#f3f5fb;}
-  .reg-item .leg{font-family:'Oswald',sans-serif;font-size:22px;color:var(--azul-servinorte);line-height:1;}
-  .reg-item .nom{font-weight:700;color:var(--azul-servinorte);font-size:14.5px;}
-  .reg-item .det{font-size:12.5px;color:#5A5A5A;margin-top:2px;line-height:1.35;}
+  .reg-item .leg{font-family:'Oswald',sans-serif;font-size:20px;color:var(--azul-servinorte);line-height:1;}
+  .reg-item .nom{font-weight:700;color:var(--azul-servinorte);font-size:13.5px;}
+  .reg-item .det{font-size:12px;color:#5A5A5A;margin-top:2px;line-height:1.35;}
   .reg-item .tag{
-    font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--azul-servinorte);
-    background:rgba(31,61,129,.10);padding:6px 8px;border-radius:8px;white-space:nowrap;
+    font-size:10px;letter-spacing:.4px;text-transform:uppercase;color:var(--azul-servinorte);
+    background:rgba(31,61,129,.10);padding:5px 7px;border-radius:6px;white-space:nowrap;
   }
+
+  /* Panel control (derecha) */
+  .pane-ctrl{position:sticky;top:10px;max-height:calc(100vh - 20px);display:flex;flex-direction:column;overflow:hidden;}
+  #ctrlTablas{flex:1;min-height:0;overflow:auto;}
+  .ctrl-search{
+    width:100%;font:inherit;font-size:14px;padding:10px 12px;border:1.5px solid #d5dbe8;
+    border-radius:10px;background:#fff;color:var(--azul-servinorte);margin-bottom:10px;
+  }
+  .ctrl-filtros{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;}
+  .ctrl-filtros .row-f{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .ctrl-filtros .lbl{
+    font-family:'Oswald',sans-serif;font-size:12px;letter-spacing:.8px;
+    text-transform:uppercase;color:var(--azul-servinorte);
+  }
+  .chip-group{
+    display:inline-flex;border:1.5px solid var(--azul-servinorte);border-radius:4px;overflow:hidden;background:#fff;
+  }
+  .chip-sq{
+    font-family:'Barlow Semi Condensed',sans-serif;font-size:13px;letter-spacing:.3px;
+    border:none;border-right:1px solid var(--azul-servinorte);border-radius:0;
+    color:var(--azul-servinorte);background:#fff;padding:7px 12px;cursor:pointer;margin:0;
+  }
+  .chip-sq:last-child{border-right:none;}
+  .chip-sq.on{background:var(--azul-servinorte);color:#fff;}
+  .sector-wrap{position:relative;}
+  .sector-btn{
+    font-family:'Barlow Semi Condensed',sans-serif;font-size:13px;letter-spacing:.3px;
+    border:1.5px solid var(--azul-servinorte);color:var(--azul-servinorte);background:#fff;
+    border-radius:4px;padding:7px 12px;cursor:pointer;width:100%;text-align:left;
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+  }
+  .sector-btn::after{content:"▾";font-size:11px;}
+  .sector-menu{
+    display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:40;
+    background:#fff;border:1px solid #d5dbe8;border-radius:8px;
+    box-shadow:0 12px 28px rgba(31,61,129,.14);max-height:220px;overflow:auto;padding:4px;
+  }
+  .sector-menu.open{display:block;}
+  .sector-menu button{
+    display:block;width:100%;text-align:left;border:none;background:transparent;
+    font:inherit;font-size:13px;padding:8px 10px;border-radius:6px;cursor:pointer;color:#222;
+  }
+  .sector-menu button:hover,.sector-menu button.on{background:rgba(31,61,129,.08);color:var(--azul-servinorte);}
+  .ctrl-grupo{
+    font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:13px;text-transform:uppercase;
+    color:var(--azul-servinorte);margin:6px 0 8px;
+  }
+  .ctrl-table-wrap{border-top:1px solid rgba(31,61,129,.18);margin-bottom:12px;}
+  .ctrl-table{width:100%;border-collapse:collapse;table-layout:fixed;}
+  .ctrl-table thead th{
+    position:sticky;top:0;z-index:2;background:#eef2f9;color:var(--azul-servinorte);
+    font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.6px;text-transform:uppercase;
+    font-weight:600;padding:8px 4px;text-align:center;border-bottom:1.5px solid var(--azul-servinorte);
+  }
+  .ctrl-table thead th.th-emp{text-align:left;padding-left:6px;}
+  .ctrl-table tbody td{
+    padding:8px 4px;vertical-align:middle;border-bottom:1px solid rgba(31,61,129,.35);
+    background:transparent;
+  }
+  .ctrl-table tbody tr{cursor:pointer;}
+  .ctrl-table tbody tr:hover td{background:rgba(31,61,129,.04);}
+  .ctrl-table .c-leg{
+    font-family:'Oswald',sans-serif;font-size:16px;color:var(--azul-servinorte);
+    text-align:center;width:48px;
+  }
+  .ctrl-table .c-emp{
+    font-size:12.5px;font-weight:600;color:#24355f;text-align:left;padding-left:6px;
+    word-break:break-word;line-height:1.25;
+  }
+  .ctrl-table .c-num{
+    font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;color:var(--azul-servinorte);
+    text-align:center;line-height:1;
+  }
+  .ctrl-table .c-num.zero{color:#b0b8c8;font-weight:600;font-size:18px;}
+  .ctrl-empty{font-size:12.5px;color:#5a6680;padding:14px 6px;text-align:center;}
+
   .form-view[hidden], .hub[hidden]{display:none!important;}
+  @media (max-width:960px){
+    .hub-split{grid-template-columns:1fr;}
+    .pane-ctrl{position:relative;top:auto;max-height:none;}
+    .ctrl-table-wrap{max-height:55vh;}
+  }
   @media (max-width:640px){
     .meta-grid{grid-template-columns:1fr;}
     .date-summary,.meta-after-cal{grid-template-columns:1fr 1fr;}
     .cal{max-width:260px;}
-    .reg-item{grid-template-columns:56px 1fr;}
+    .reg-item{grid-template-columns:48px 1fr;}
     .reg-item .tag{grid-column:1/-1;justify-self:start;}
+    .ctrl-table .c-num{font-size:17px;}
   }
 
   .app-shell[hidden]{display:none!important;}
@@ -274,8 +364,8 @@
   <form class="gate-card" id="gateForm" autocomplete="on">
     <img src="/logo-servinorte.jfif" alt="Servinorte">
     <h1>RRHH · Formulario PDF</h1>
-    <p>Versión <b>v2026-08-10g</b> · Registros + formulario PDF</p>
-    <p>Ingresá la clave para ver los registros de vacaciones y generar formularios PDF.</p>
+    <p>Versión <b>v2026-08-10h</b> · Panel unificado vacaciones</p>
+    <p>Ingresá la clave para el panel central: registro y control de vacaciones.</p>
     <label for="clave">Clave de acceso</label>
     <input id="clave" name="password" type="password" placeholder="Clave RRHH" required>
     <div class="err" id="gateErr"></div>
@@ -286,61 +376,87 @@
 <div class="app-shell" id="appShell" hidden>
 
 <div class="hub no-print" id="hub">
-  <h2>Registro de vacaciones</h2>
-  <p class="sub">Elegí un registro para abrir el formulario, o buscá un empleado y cargá las fechas para generar uno nuevo.</p>
+  <div class="hub-split">
 
-  <div class="hub-card">
-    <h3>Registro manual</h3>
-    <div class="search-row">
-      <input id="empSearch" type="search" placeholder="Buscar empleado por nombre o legajo…" autocomplete="off" oninput="onEmpSearch()">
-      <div class="suggest" id="empSuggest"></div>
-    </div>
-    <div class="meta-grid">
-      <div class="fld"><label>Legajo</label><div class="val" id="mLeg">—</div></div>
-      <div class="fld"><label>Antigüedad</label><div class="val" id="mAntig">—</div></div>
-      <div class="fld"><label>Empleado</label><div class="val" id="mNom">—</div></div>
-      <div class="fld"><label>Sector / Puesto</label><div class="val" id="mPuesto">—</div></div>
-      <div class="date-summary">
-        <div class="fld">
-          <label>Desde</label>
-          <div class="val" id="mDesdeLabel">—</div>
-          <input type="hidden" id="mDesde" value="">
+    <section class="pane pane-reg" aria-label="Registro de vacaciones">
+      <h2>Registro de vacaciones</h2>
+      <p class="sub">Elegí un registro para abrir el formulario, o buscá un empleado y cargá las fechas.</p>
+
+      <div class="hub-card">
+        <h3>Registro manual</h3>
+        <div class="search-row">
+          <input id="empSearch" type="search" placeholder="Buscar empleado por nombre o legajo…" autocomplete="off" oninput="onEmpSearch()">
+          <div class="suggest" id="empSuggest"></div>
         </div>
-        <div class="fld">
-          <label>Hasta</label>
-          <div class="val" id="mHastaLabel">—</div>
-          <input type="hidden" id="mHasta" value="">
-        </div>
-      </div>
-      <div class="cal-wrap" id="calWrap">
-        <div class="cal">
-          <div class="cal-nav">
-            <button type="button" onclick="shiftCal(-1)" aria-label="Mes anterior">‹</button>
-            <strong id="calTitle">Mes</strong>
-            <button type="button" onclick="shiftCal(1)" aria-label="Mes siguiente">›</button>
+        <div class="meta-grid">
+          <div class="fld"><label>Legajo</label><div class="val" id="mLeg">—</div></div>
+          <div class="fld"><label>Antigüedad</label><div class="val" id="mAntig">—</div></div>
+          <div class="fld"><label>Empleado</label><div class="val" id="mNom">—</div></div>
+          <div class="fld"><label>Sector / Puesto</label><div class="val" id="mPuesto">—</div></div>
+          <div class="date-summary">
+            <div class="fld">
+              <label>Desde</label>
+              <div class="val" id="mDesdeLabel">—</div>
+              <input type="hidden" id="mDesde" value="">
+            </div>
+            <div class="fld">
+              <label>Hasta</label>
+              <div class="val" id="mHastaLabel">—</div>
+              <input type="hidden" id="mHasta" value="">
+            </div>
           </div>
-          <div class="cal-grid" id="calGrid"></div>
-          <div class="cal-hint" id="calHint">Tocá desde y luego hasta en el mismo calendario</div>
+          <div class="cal-wrap" id="calWrap">
+            <div class="cal">
+              <div class="cal-nav">
+                <button type="button" onclick="shiftCal(-1)" aria-label="Mes anterior">‹</button>
+                <strong id="calTitle">Mes</strong>
+                <button type="button" onclick="shiftCal(1)" aria-label="Mes siguiente">›</button>
+              </div>
+              <div class="cal-grid" id="calGrid"></div>
+              <div class="cal-hint" id="calHint">Tocá desde y luego hasta en el mismo calendario</div>
+            </div>
+          </div>
+          <div class="meta-after-cal">
+            <div class="fld"><label>Días solicitados</label><div class="val" id="mDias">—</div></div>
+            <div class="fld"><label>Período / saldo</label><div class="val" id="mPeriodo">—</div></div>
+          </div>
+        </div>
+        <div class="hub-actions">
+          <button type="button" class="btn solid" id="btnManual" onclick="generarRegistroManual()" disabled>Generar registro y abrir formulario</button>
+        </div>
+        <div class="hub-msg" id="hubMsg"></div>
+      </div>
+
+      <div class="hub-card">
+        <h3>Vacaciones registradas</h3>
+        <div class="reg-tools">
+          <input id="regFilter" type="search" placeholder="Filtrar registros por empleado o legajo…" oninput="pintarRegistros()">
+          <button type="button" class="btn" onclick="cargarHub()">Actualizar</button>
+        </div>
+        <div class="reg-list" id="regList"><div class="hub-msg">Cargando registros…</div></div>
+      </div>
+    </section>
+
+    <section class="pane pane-ctrl" aria-label="Control de vacaciones">
+      <h2>Control de vacaciones</h2>
+      <input id="ctrlQ" class="ctrl-search" type="search" placeholder="Buscar por nombre, apellido o legajo…" oninput="pintarControl()" autocomplete="off">
+      <div class="ctrl-filtros">
+        <div class="row-f">
+          <span class="lbl">Pendiente</span>
+          <div class="chip-group" role="group" aria-label="Filtro pendiente">
+            <button type="button" class="chip-sq" id="chip-2024" onclick="setFiltroPeriodo(2024)">2024</button>
+            <button type="button" class="chip-sq" id="chip-2025" onclick="setFiltroPeriodo(2025)">2025</button>
+            <button type="button" class="chip-sq" id="chip-2026" onclick="setFiltroPeriodo(2026)">2026</button>
+          </div>
+        </div>
+        <div class="sector-wrap">
+          <button type="button" class="sector-btn" id="sectorBtn" onclick="toggleSectorMenu()">Sector: Todos</button>
+          <div class="sector-menu" id="sectorMenu"></div>
         </div>
       </div>
-      <div class="meta-after-cal">
-        <div class="fld"><label>Días solicitados</label><div class="val" id="mDias">—</div></div>
-        <div class="fld"><label>Período / saldo</label><div class="val" id="mPeriodo">—</div></div>
-      </div>
-    </div>
-    <div class="hub-actions">
-      <button type="button" class="btn solid" id="btnManual" onclick="generarRegistroManual()" disabled>Generar registro y abrir formulario</button>
-    </div>
-    <div class="hub-msg" id="hubMsg"></div>
-  </div>
+      <div id="ctrlTablas"></div>
+    </section>
 
-  <div class="hub-card">
-    <h3>Vacaciones registradas</h3>
-    <div class="reg-tools">
-      <input id="regFilter" type="search" placeholder="Filtrar registros por empleado o legajo…" oninput="pintarRegistros()">
-      <button type="button" class="btn" onclick="cargarHub()">Actualizar</button>
-    </div>
-    <div class="reg-list" id="regList"><div class="hub-msg">Cargando registros…</div></div>
   </div>
 </div>
 
@@ -402,12 +518,23 @@ const CONFIG = {
 
 /* Columnas CONTROL: C=2023 … F=2026 */
 const PERIODOS_HOJA = [2023, 2024, 2025, 2026];
-/* Períodos usados para asignar vacaciones en el hub */
+/* Períodos usados para asignar vacaciones / filtros pendiente */
 const PERIODOS = [2024, 2025, 2026];
+/* Columnas de períodos en la tabla de control (encabezados fijos) */
+const PERIODOS_TABLA = [2023, 2024, 2025];
+
+const OTRA_SOCIEDAD = new Set([
+  "VELARDE MAURO GASTON",
+  "VEGA LEONARDO EZEQUIEL",
+  "BLATT ERNESTO ANGEL",
+  "MERIDA LEANDRO JAVIER"
+]);
 
 let registros = [];
 let empleadosHub = [];
 let empSeleccionado = null;
+let filtroPeriodo = null;
+let filtroSector = null;
 
 const COPIAS = [
   {tag:"Original · Empleado", fill:true},
@@ -983,6 +1110,7 @@ async function generarRegistroManual(){
     };
     registros.unshift(row);
     pintarRegistros();
+    pintarControl();
     syncManualDias();
     setHubMsg('Registro creado. Abriendo formulario…','ok');
     abrirRegistro(row);
@@ -990,6 +1118,118 @@ async function generarRegistroManual(){
     setHubMsg('Error: '+(err.message||err),'err');
     btn.disabled=false;
   }
+}
+
+function esOtraSociedad(e){
+  return OTRA_SOCIEDAD.has(normName(e.nombre));
+}
+function matchesCtrlQuery(e, qRaw){
+  const q=String(qRaw||'').trim();
+  if(!q) return true;
+  const qn=normName(q);
+  const qDigits=q.replace(/\D+/g,'');
+  if(qDigits && String(e.legajo).replace(/\D+/g,'').includes(qDigits)) return true;
+  const nameToks=normName(e.nombre).split(' ').filter(Boolean);
+  const qToks=qn.split(' ').filter(Boolean);
+  return qToks.every(qt => nameToks.some(nt => nt.includes(qt) || qt.includes(nt)) || normName(e.nombre).includes(qt));
+}
+function setFiltroPeriodo(p){
+  filtroPeriodo = (filtroPeriodo===p ? null : p);
+  PERIODOS.forEach(y=>{
+    const el=document.getElementById('chip-'+y);
+    if(el) el.classList.toggle('on', filtroPeriodo===y);
+  });
+  pintarControl();
+}
+function sectoresDisponibles(){
+  const set=new Set();
+  empleadosHub.forEach(e=>{
+    const s=(e.puesto||'').trim();
+    if(s) set.add(s);
+  });
+  return [...set].sort((a,b)=>a.localeCompare(b,'es'));
+}
+function renderSectorMenu(){
+  const menu=document.getElementById('sectorMenu');
+  const btn=document.getElementById('sectorBtn');
+  if(!menu || !btn) return;
+  const secs=sectoresDisponibles();
+  const items=[{v:null,l:'Todos'}, ...secs.map(s=>({v:s,l:s}))];
+  menu.innerHTML=items.map(it=>`
+    <button type="button" class="${(filtroSector||null)===(it.v||null)?'on':''}" data-v="${it.v==null?'':encodeURIComponent(it.v)}">${esc(it.l)}</button>
+  `).join('');
+  menu.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      const raw=b.getAttribute('data-v');
+      filtroSector = raw ? decodeURIComponent(raw) : null;
+      btn.textContent = 'Sector: ' + (filtroSector || 'Todos');
+      menu.classList.remove('open');
+      pintarControl();
+    });
+  });
+}
+function toggleSectorMenu(){
+  document.getElementById('sectorMenu').classList.toggle('open');
+}
+function celdaPeriodo(emp, p){
+  const raw = emp.raw && emp.raw[p];
+  if(raw==='***') return `<td class="c-num zero">—</td>`;
+  const v = emp.saldos && emp.saldos[p] != null ? emp.saldos[p] : 0;
+  return `<td class="c-num ${v?'' :'zero'}">${v}</td>`;
+}
+function filasControlHtml(arr){
+  if(!arr.length) return `<tr><td colspan="${2+PERIODOS_TABLA.length}" class="ctrl-empty">Sin resultados.</td></tr>`;
+  return arr.map(e=>{
+    const k=encodeURIComponent(e.legajo+'::'+normName(e.nombre));
+    return `<tr data-k="${k}">
+      <td class="c-leg">${esc(e.legajo)}</td>
+      <td class="c-emp">${esc(e.nombre)}</td>
+      ${PERIODOS_TABLA.map(p=>celdaPeriodo(e,p)).join('')}
+    </tr>`;
+  }).join('');
+}
+function pintarControl(){
+  const cont=document.getElementById('ctrlTablas');
+  if(!cont) return;
+  const q=document.getElementById('ctrlQ') ? document.getElementById('ctrlQ').value : '';
+  const filtra=e=>{
+    const okq=matchesCtrlQuery(e,q);
+    const okp=filtroPeriodo===null || ((e.saldos&&e.saldos[filtroPeriodo])||0)>0;
+    const oks=filtroSector===null || (e.puesto||'').trim()===filtroSector;
+    return okq && okp && oks;
+  };
+  const principal=empleadosHub.filter(e=>!esOtraSociedad(e) && filtra(e));
+  const otra=empleadosHub.filter(e=>esOtraSociedad(e) && filtra(e));
+  const head=`<thead><tr>
+    <th style="width:52px">Legajo</th>
+    <th class="th-emp">Empleado</th>
+    ${PERIODOS_TABLA.map(p=>`<th>${p}</th>`).join('')}
+  </tr></thead>`;
+
+  const bloque=(titulo, arr)=>`
+    <div class="ctrl-grupo">${esc(titulo)}</div>
+    <div class="ctrl-table-wrap">
+      <table class="ctrl-table">
+        ${head}
+        <tbody>${filasControlHtml(arr)}</tbody>
+      </table>
+    </div>`;
+
+  cont.innerHTML = bloque('SERVINORTE SRL', principal)
+    + (otra.length || empleadosHub.some(esOtraSociedad) ? bloque('SERVINORTE REPUESTOS SA.', otra) : '');
+
+  cont.querySelectorAll('tbody tr[data-k]').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const k=decodeURIComponent(tr.getAttribute('data-k')||'');
+      const emp=empleadosHub.find(e => (e.legajo+'::'+normName(e.nombre))===k);
+      if(emp){
+        seleccionarEmpleado(emp);
+        const pane=document.querySelector('.pane-reg');
+        if(pane) pane.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    });
+  });
+  renderSectorMenu();
 }
 
 function pintarRegistros(){
@@ -1088,7 +1328,22 @@ async function cargarHub(){
         emp.raw[p]=cell.raw;
       });
     }
-    empleadosHub=emps;
+    // Preferir orden de CONTROL para el panel derecho
+    const ordenCtrl=[];
+    const seen=new Set();
+    for(let r=0;r<dtCtrl.getNumberOfRows();r++){
+      const nombre=cellText(dtCtrl,r,1);
+      if(!nombre||normName(nombre)==='EMPLEADOS') continue;
+      const emp=byName[normName(nombre)];
+      if(emp && !seen.has(normName(nombre))){
+        ordenCtrl.push(emp);
+        seen.add(normName(nombre));
+      }
+    }
+    emps.forEach(e=>{
+      if(!seen.has(normName(e.nombre))){ ordenCtrl.push(e); seen.add(normName(e.nombre)); }
+    });
+    empleadosHub=ordenCtrl;
 
     const regs=[];
     for(let r=0;r<dtReg.getNumberOfRows();r++){
@@ -1107,7 +1362,8 @@ async function cargarHub(){
     }
     registros=regs;
     pintarRegistros();
-    setHubMsg(`${registros.length} registros · ${empleadosHub.length} empleados`,'ok');
+    pintarControl();
+    setHubMsg(`${registros.length} registros cargados`,'ok');
   }catch(err){
     list.innerHTML=`<div class="hub-msg err">No se pudo cargar: ${esc(err.message||err)}</div>`;
     setHubMsg('Error al leer la planilla.','err');
@@ -1134,11 +1390,16 @@ function iniciar(){
   }else{
     setHubMsg('No se cargó Google Charts.','err');
   }
-  // cerrar sugerencias de empleado al click afuera
+  // cerrar sugerencias / menú sector al click afuera
   document.addEventListener('click', (ev)=>{
     const row=document.querySelector('.search-row');
     if(row && !row.contains(ev.target)){
       document.getElementById('empSuggest').classList.remove('open');
+    }
+    const sw=document.querySelector('.sector-wrap');
+    if(sw && !sw.contains(ev.target)){
+      const menu=document.getElementById('sectorMenu');
+      if(menu) menu.classList.remove('open');
     }
   });
 }

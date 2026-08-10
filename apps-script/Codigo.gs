@@ -85,6 +85,26 @@ function handle_(data) {
     }
 
     var ss = SpreadsheetApp.openById(SHEET_ID);
+
+    // Validar saldo del período ANTES de escribir en REGISTRO
+    var saldoPrev = leerSaldoControl_(ss, leg, empleado, periodo);
+    if (saldoPrev.raw === '***') {
+      return json_({
+        ok: false,
+        error: 'El período ' + periodo + ' no aplica (***) para este empleado.',
+        control: saldoPrev
+      });
+    }
+    if (saldoPrev.anterior < diasNum) {
+      return json_({
+        ok: false,
+        error: 'No se puede registrar: pedís ' + diasNum +
+          ' días y solo quedan ' + saldoPrev.anterior +
+          ' del período ' + periodo + '.',
+        control: saldoPrev
+      });
+    }
+
     var sh = getHoja_(ss, HOJA_REGISTRO, 'REGISTRO');
     limpiarVaciasArribaRapido_(sh);
 
@@ -161,8 +181,8 @@ function norm_(s) {
     .toUpperCase();
 }
 
-/** Descuenta días del período en CONTROL. Devuelve saldo anterior/nuevo. */
-function descontarControl_(ss, leg, empleado, periodo, diasNum) {
+/** Ubica fila/saldo de un empleado en CONTROL para un período. */
+function leerSaldoControl_(ss, leg, empleado, periodo) {
   var sh = getHoja_(ss, HOJA_CONTROL, 'CONTROL');
   var col = COL_PERIODO[String(periodo)];
   if (!col) {
@@ -208,23 +228,18 @@ function descontarControl_(ss, leg, empleado, periodo, diasNum) {
   }
 
   if (found < 0) {
-    throw new Error('No se encontró a "' + empleado + '" en CONTROL para descontar días.');
+    throw new Error('No se encontró a "' + empleado + '" en CONTROL.');
   }
 
   var sheetRow = CONTROL_FILA_INICIO + found;
   var cell = sh.getRange(sheetRow, col);
   var raw = String(cell.getDisplayValue() || '').trim();
-  if (raw === '***') {
-    throw new Error('El período ' + periodo + ' no aplica (*** ) para este empleado.');
-  }
-
   var anterior = 0;
-  if (raw && raw !== '-') {
+  if (raw && raw !== '-' && raw !== '***') {
     anterior = Number(String(raw).replace(/[^\d-]/g, ''));
     if (!isFinite(anterior)) anterior = 0;
+    if (anterior < 0) anterior = 0;
   }
-  var nuevo = Math.max(0, anterior - diasNum);
-  cell.setValue(nuevo);
 
   return {
     hoja: HOJA_CONTROL,
@@ -232,10 +247,39 @@ function descontarControl_(ss, leg, empleado, periodo, diasNum) {
     periodo: Number(periodo),
     columna: col,
     anterior: anterior,
-    nuevo: nuevo,
-    descontado: anterior - nuevo,
+    raw: raw,
     leg: String(values[found][0] || ''),
     empleado: String(values[found][1] || '')
+  };
+}
+
+/** Descuenta días del período en CONTROL. Devuelve saldo anterior/nuevo. */
+function descontarControl_(ss, leg, empleado, periodo, diasNum) {
+  var info = leerSaldoControl_(ss, leg, empleado, periodo);
+  if (info.raw === '***') {
+    throw new Error('El período ' + periodo + ' no aplica (***) para este empleado.');
+  }
+  if (info.anterior < diasNum) {
+    throw new Error(
+      'No se puede descontar: pedís ' + diasNum +
+      ' días y solo quedan ' + info.anterior +
+      ' del período ' + periodo + '.'
+    );
+  }
+
+  var nuevo = info.anterior - diasNum;
+  getHoja_(ss, HOJA_CONTROL, 'CONTROL').getRange(info.fila, info.columna).setValue(nuevo);
+
+  return {
+    hoja: info.hoja,
+    fila: info.fila,
+    periodo: info.periodo,
+    columna: info.columna,
+    anterior: info.anterior,
+    nuevo: nuevo,
+    descontado: info.anterior - nuevo,
+    leg: info.leg,
+    empleado: info.empleado
   };
 }
 

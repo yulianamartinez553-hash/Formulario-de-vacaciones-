@@ -51,6 +51,13 @@ function handle_(data) {
     if (accion === 'ping') {
       return json_({ ok: true, ping: true, ts: new Date().toISOString() });
     }
+    if (accion === 'corregirproporcionales' || accion === 'corregir_proporcionales') {
+      var clave = String(data.clave || data.key || '').trim();
+      if (clave !== 'ServinorteRRHH2026') {
+        return json_({ ok: false, error: 'Clave inválida.' });
+      }
+      return json_(corregirProporcionalesLCT_());
+    }
     if (accion !== 'registrar') {
       return json_({ ok: false, error: 'Acción no soportada: ' + accion });
     }
@@ -241,6 +248,154 @@ function limpiarVaciasArribaRapido_(sh) {
     if (!joined) sh.deleteRow(r);
     else break;
   }
+}
+
+/**
+ * Corrige días LCT mal calculados en hojas 2023/2024/2025 (columna F)
+ * y ajusta CONTROL si el pendiente aún refleja el valor incorrecto.
+ *
+ * También se puede ejecutar a mano: seleccionar esta función → Ejecutar.
+ * O por URL (después de Versión nueva):
+ * .../exec?accion=corregirProporcionales&clave=ServinorteRRHH2026
+ */
+function corregirProporcionalesLCT() {
+  var out = corregirProporcionalesLCT_();
+  Logger.log(JSON.stringify(out));
+  return out;
+}
+
+function corregirProporcionalesLCT_() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  // Fixes: [periodoHoja, leg, debe]
+  var fixes = [
+    ['2023', '97', 8],
+    ['2023', '99', 8],
+    ['2023', '100', 8],
+    ['2023', '102', 6],
+    ['2023', '103', 5],
+    ['2023', '105', 14],
+    ['2023', '106', 14],
+    ['2024', '106', 14],
+    ['2024', '129', 6],
+    ['2024', '130', 5],
+    ['2025', '148', 6],
+    ['2025', '149', 3],
+    ['2025', '150', 1]
+  ];
+
+  var resultados = [];
+  var shControl = getHoja_(ss, HOJA_CONTROL, 'CONTROL');
+
+  for (var i = 0; i < fixes.length; i++) {
+    var hoja = fixes[i][0];
+    var leg = String(fixes[i][1]);
+    var debe = Number(fixes[i][2]);
+    var sh = getHoja_(ss, hoja, hoja);
+    var last = Math.max(sh.getLastRow(), 1);
+    var vals = sh.getRange(1, 1, last, 6).getDisplayValues();
+    var found = -1;
+    for (var r = 0; r < vals.length; r++) {
+      if (String(vals[r][0] || '').trim() === leg) {
+        found = r;
+        break;
+      }
+    }
+    if (found < 0) {
+      resultados.push({ ok: false, hoja: hoja, leg: leg, error: 'No encontrado en hoja período' });
+      continue;
+    }
+
+    var row = found + 1; // 1-based
+    var tieneRaw = String(vals[found][5] || '').trim();
+    var tiene = Number(String(tieneRaw).replace(/[^\d-]/g, ''));
+    if (!isFinite(tiene)) tiene = 0;
+    var item = {
+      ok: true,
+      hoja: hoja,
+      leg: leg,
+      nombre: String(vals[found][1] || '').trim(),
+      tiene: tiene,
+      debe: debe
+    };
+
+    if (tiene !== debe) {
+      sh.getRange(row, 6).setValue(debe);
+      item.periodoActualizado = true;
+    } else {
+      item.periodoActualizado = false;
+    }
+
+    // Ajuste CONTROL: si el pendiente del período == "tiene" (valor viejo), pasar a "debe".
+    // Si pendiente es otro número, aplicar delta (debe - tiene).
+    var col = COL_PERIODO[String(hoja)];
+    var ctrlFix = ajustarControlPendiente_(shControl, leg, col, tiene, debe);
+    item.control = ctrlFix;
+    resultados.push(item);
+  }
+
+  // Agustina: CONTROL 2025/2026 todavía en 21 → 14 (escala incorrecta <5 años)
+  var agustinaExtra = [];
+  ['2025', '2026'].forEach(function (per) {
+    var col = COL_PERIODO[per];
+    var info = forzarControlSiValor_(shControl, '106', col, 21, 14);
+    if (info) agustinaExtra.push(info);
+  });
+
+  SpreadsheetApp.flush();
+  return {
+    ok: true,
+    message: 'Proporcionales LCT corregidos (Art. 151: < mitad de año = 1 día c/20 días corridos; si no, escala por antigüedad).',
+    resultados: resultados,
+    agustinaControlExtra: agustinaExtra
+  };
+}
+
+function ajustarControlPendiente_(shControl, leg, col, tiene, debe) {
+  var last = Math.max(shControl.getLastRow(), CONTROL_FILA_INICIO);
+  var num = last - CONTROL_FILA_INICIO + 1;
+  var values = shControl.getRange(CONTROL_FILA_INICIO, 1, num, 6).getDisplayValues();
+  for (var i = 0; i < values.length; i++) {
+    if (String(values[i][0] || '').trim() !== String(leg)) continue;
+    var sheetRow = CONTROL_FILA_INICIO + i;
+    var cell = shControl.getRange(sheetRow, col);
+    var raw = String(cell.getDisplayValue() || '').trim();
+    if (!raw || raw === '-' || raw === '***') {
+      return { fila: sheetRow, raw: raw, accion: 'sin_cambio' };
+    }
+    var pend = Number(String(raw).replace(/[^\d-]/g, ''));
+    if (!isFinite(pend)) return { fila: sheetRow, raw: raw, accion: 'sin_cambio' };
+
+    var delta = debe - tiene;
+    var nuevo;
+    if (pend === tiene) nuevo = debe;
+    else nuevo = Math.max(0, pend + delta);
+
+    if (nuevo !== pend) {
+      cell.setValue(nuevo);
+      return { fila: sheetRow, anterior: pend, nuevo: nuevo, accion: 'ajustado' };
+    }
+    return { fila: sheetRow, anterior: pend, nuevo: pend, accion: 'sin_cambio' };
+  }
+  return { accion: 'leg_no_encontrado_en_control' };
+}
+
+function forzarControlSiValor_(shControl, leg, col, valorActual, valorNuevo) {
+  var last = Math.max(shControl.getLastRow(), CONTROL_FILA_INICIO);
+  var num = last - CONTROL_FILA_INICIO + 1;
+  var values = shControl.getRange(CONTROL_FILA_INICIO, 1, num, 6).getDisplayValues();
+  for (var i = 0; i < values.length; i++) {
+    if (String(values[i][0] || '').trim() !== String(leg)) continue;
+    var sheetRow = CONTROL_FILA_INICIO + i;
+    var cell = shControl.getRange(sheetRow, col);
+    var raw = String(cell.getDisplayValue() || '').trim();
+    var pend = Number(String(raw).replace(/[^\d-]/g, ''));
+    if (isFinite(pend) && pend === valorActual) {
+      cell.setValue(valorNuevo);
+      return { leg: leg, fila: sheetRow, columna: col, anterior: pend, nuevo: valorNuevo };
+    }
+    return { leg: leg, fila: sheetRow, columna: col, raw: raw, accion: 'sin_cambio' };
+  }
+  return null;
 }
 
 function json_(obj) {

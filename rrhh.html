@@ -193,42 +193,49 @@
     min-height:42px;border:1.5px solid #e2e7f0;border-radius:10px;background:#f3f5fb;
     padding:10px 12px;font-weight:600;color:var(--azul-servinorte);display:flex;align-items:center;
   }
-  .date-btn{
-    width:100%;min-height:42px;border:1.5px solid #d5dbe8;border-radius:10px;background:#fff;
-    padding:10px 12px;font:inherit;font-size:15px;font-weight:600;color:var(--azul-servinorte);
-    text-align:left;cursor:pointer;display:flex;align-items:center;justify-content:space-between;
+  .date-summary{
+    grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;
   }
-  .date-btn:hover,.date-btn.open{border-color:var(--azul-servinorte);background:#f3f5fb;}
-  .date-btn .ph{color:#7a869c;font-weight:500;}
-  .date-btn .ico{font-size:15px;opacity:.7;}
-  .cal-wrap{grid-column:1/-1;display:none;margin-top:2px;}
-  .cal-wrap.open{display:block;}
+  .date-summary .val.range{
+    font-size:13.5px;line-height:1.35;min-height:48px;
+  }
+  .cal-wrap{
+    grid-column:1/-1;display:none;margin:2px 0 4px;
+    justify-content:center;
+  }
+  .cal-wrap.open{display:flex;}
   .cal{
-    border:1px solid #d5dbe8;border-radius:14px;padding:12px;background:#f3f5fb;
+    width:100%;max-width:280px;border:1px solid #d5dbe8;border-radius:12px;
+    padding:8px 8px 6px;background:#f3f5fb;
   }
-  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;}
+  .cal-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;gap:6px;}
   .cal-nav button{
-    border:1px solid #d5dbe8;background:#fff;border-radius:8px;width:34px;height:34px;
-    cursor:pointer;color:var(--azul-servinorte);font-size:16px;line-height:1;
+    border:1px solid #d5dbe8;background:#fff;border-radius:7px;width:28px;height:28px;
+    cursor:pointer;color:var(--azul-servinorte);font-size:14px;line-height:1;
   }
   .cal-nav strong{
-    font-family:'Oswald',sans-serif;letter-spacing:.8px;color:var(--azul-servinorte);
-    text-transform:capitalize;font-size:15px;font-weight:600;
+    font-family:'Oswald',sans-serif;letter-spacing:.6px;color:var(--azul-servinorte);
+    text-transform:capitalize;font-size:13px;font-weight:600;
   }
-  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
-  .cal-grid .dow{text-align:center;font-size:11px;color:#6a7690;padding:4px 0;font-weight:700;}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+  .cal-grid .dow{text-align:center;font-size:10px;color:#6a7690;padding:2px 0;font-weight:700;}
   .cal-grid .day{
-    aspect-ratio:1;border:none;border-radius:9px;background:transparent;cursor:pointer;
-    font:inherit;font-size:13.5px;color:#223;display:flex;align-items:center;justify-content:center;
+    width:100%;height:28px;border:none;border-radius:6px;background:transparent;cursor:pointer;
+    font:inherit;font-size:12px;color:#223;display:flex;align-items:center;justify-content:center;
+    padding:0;
   }
   .cal-grid .day:hover{background:rgba(31,61,129,.10);}
   .cal-grid .day.out{color:#c0c6d2;cursor:default;}
-  .cal-grid .day.blocked{color:#b8c0d0;cursor:not-allowed;text-decoration:line-through;opacity:.55;}
+  .cal-grid .day.blocked{color:#b8c0d0;cursor:not-allowed;text-decoration:line-through;opacity:.5;}
   .cal-grid .day.blocked:hover{background:transparent;}
   .cal-grid .day.today{box-shadow:inset 0 0 0 1.5px var(--azul-servinorte);}
-  .cal-grid .day.inrange{background:rgba(31,61,129,.12);}
+  .cal-grid .day.inrange{background:rgba(31,61,129,.16);border-radius:0;}
+  .cal-grid .day.inrange.range-start{border-radius:6px 0 0 6px;}
+  .cal-grid .day.inrange.range-end{border-radius:0 6px 6px 0;}
+  .cal-grid .day.inrange.range-start.range-end{border-radius:6px;}
   .cal-grid .day.sel{background:var(--azul-servinorte);color:#fff;font-weight:700;}
-  .cal-hint{font-size:12px;color:#5a6680;margin-top:8px;text-align:center;}
+  .cal-hint{font-size:11px;color:#5a6680;margin-top:5px;text-align:center;line-height:1.3;}
+  .meta-after-cal{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
   .hub-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;}
   .hub-msg{font-size:13px;margin-top:10px;min-height:1.2em;}
   .hub-msg.ok{color:#1c7a3a;} .hub-msg.err{color:#b52a2a;}
@@ -251,6 +258,8 @@
   .form-view[hidden], .hub[hidden]{display:none!important;}
   @media (max-width:640px){
     .meta-grid{grid-template-columns:1fr;}
+    .date-summary,.meta-after-cal{grid-template-columns:1fr 1fr;}
+    .cal{max-width:260px;}
     .reg-item{grid-template-columns:56px 1fr;}
     .reg-item .tag{grid-column:1/-1;justify-self:start;}
   }
@@ -265,7 +274,7 @@
   <form class="gate-card" id="gateForm" autocomplete="on">
     <img src="/logo-servinorte.jfif" alt="Servinorte">
     <h1>RRHH · Formulario PDF</h1>
-    <p>Versión <b>v2026-08-10f</b> · Registros + formulario PDF</p>
+    <p>Versión <b>v2026-08-10g</b> · Registros + formulario PDF</p>
     <p>Ingresá la clave para ver los registros de vacaciones y generar formularios PDF.</p>
     <label for="clave">Clave de acceso</label>
     <input id="clave" name="password" type="password" placeholder="Clave RRHH" required>
@@ -291,19 +300,17 @@
       <div class="fld"><label>Antigüedad</label><div class="val" id="mAntig">—</div></div>
       <div class="fld"><label>Empleado</label><div class="val" id="mNom">—</div></div>
       <div class="fld"><label>Sector / Puesto</label><div class="val" id="mPuesto">—</div></div>
-      <div class="fld">
-        <label>Desde</label>
-        <button type="button" class="date-btn" id="mDesdeBtn" onclick="abrirCalendario('desde')">
-          <span id="mDesdeLabel" class="ph">Elegir fecha</span><span class="ico" aria-hidden="true">▾</span>
-        </button>
-        <input type="hidden" id="mDesde" value="">
-      </div>
-      <div class="fld">
-        <label>Hasta</label>
-        <button type="button" class="date-btn" id="mHastaBtn" onclick="abrirCalendario('hasta')">
-          <span id="mHastaLabel" class="ph">Elegir fecha</span><span class="ico" aria-hidden="true">▾</span>
-        </button>
-        <input type="hidden" id="mHasta" value="">
+      <div class="date-summary">
+        <div class="fld">
+          <label>Desde</label>
+          <div class="val" id="mDesdeLabel">—</div>
+          <input type="hidden" id="mDesde" value="">
+        </div>
+        <div class="fld">
+          <label>Hasta</label>
+          <div class="val" id="mHastaLabel">—</div>
+          <input type="hidden" id="mHasta" value="">
+        </div>
       </div>
       <div class="cal-wrap" id="calWrap">
         <div class="cal">
@@ -313,11 +320,13 @@
             <button type="button" onclick="shiftCal(1)" aria-label="Mes siguiente">›</button>
           </div>
           <div class="cal-grid" id="calGrid"></div>
-          <div class="cal-hint" id="calHint">Semana: lunes a domingo · mes actual</div>
+          <div class="cal-hint" id="calHint">Tocá desde y luego hasta en el mismo calendario</div>
         </div>
       </div>
-      <div class="fld"><label>Días solicitados</label><div class="val" id="mDias">—</div></div>
-      <div class="fld"><label>Período / saldo</label><div class="val" id="mPeriodo">—</div></div>
+      <div class="meta-after-cal">
+        <div class="fld"><label>Días solicitados</label><div class="val" id="mDias">—</div></div>
+        <div class="fld"><label>Período / saldo</label><div class="val" id="mPeriodo">—</div></div>
+      </div>
     </div>
     <div class="hub-actions">
       <button type="button" class="btn solid" id="btnManual" onclick="generarRegistroManual()" disabled>Generar registro y abrir formulario</button>
@@ -665,7 +674,7 @@ function onEmpSearch(){
 const MESES_ES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DIAS_ES=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 let calCursor=new Date();
-let calCampo='desde'; // 'desde' | 'hasta'
+let pickStep=0; // 0 = elegir desde, 1 = elegir hasta (mismo calendario)
 
 function parseSaldo(v){
   const s=String(v||'').trim();
@@ -719,53 +728,47 @@ function sameDay(a,b){
 function pintarLabelsFecha(){
   const a=document.getElementById('mDesde').value;
   const b=document.getElementById('mHasta').value;
-  const la=document.getElementById('mDesdeLabel');
-  const lb=document.getElementById('mHastaLabel');
-  if(a){ la.textContent=fmtFechaLargaES(a); la.classList.remove('ph'); }
-  else { la.textContent='Elegir fecha'; la.classList.add('ph'); }
-  if(b){ lb.textContent=fmtFechaLargaES(b); lb.classList.remove('ph'); }
-  else { lb.textContent='Elegir fecha'; lb.classList.add('ph'); }
+  document.getElementById('mDesdeLabel').textContent = a ? fmtFechaLargaES(a) : '—';
+  document.getElementById('mHastaLabel').textContent = b ? fmtFechaLargaES(b) : '—';
 }
-function hintSaldo(){
-  if(!empSeleccionado) return 'Seleccioná un empleado para ver su saldo de vacaciones.';
-  const {periodo, saldo}=infoSaldoEmp(empSeleccionado);
-  if(!(saldo>0)) return 'Sin días disponibles en CONTROL (2024–2026). No se puede generar registro.';
-  return `Período ${periodo}: quedan ${saldo} día${saldo===1?'':'s'} · el calendario no deja pedir más`;
-}
-function abrirCalendario(campo, forzar){
+function actualizarHintCal(){
+  const hint=document.getElementById('calHint');
   if(!empSeleccionado){
-    setHubMsg('Primero seleccioná un empleado.','err');
+    hint.textContent='Seleccioná un empleado para elegir fechas.';
     return;
   }
-  const {saldo}=infoSaldoEmp(empSeleccionado);
+  const {periodo, saldo}=infoSaldoEmp(empSeleccionado);
   if(!(saldo>0)){
-    setHubMsg('Este empleado no tiene días pendientes de vacaciones. No se puede registrar.','err');
-    document.getElementById('btnManual').disabled=true;
+    hint.textContent='Sin días disponibles. No se puede registrar.';
     return;
   }
-  calCampo=campo==='hasta'?'hasta':'desde';
+  const desdeISO=document.getElementById('mDesde').value;
+  const hastaISO=document.getElementById('mHasta').value;
+  const dias=diasEntreISO(desdeISO, hastaISO);
+  if(pickStep===0){
+    hint.textContent=`1º tocá el día desde · máx. ${saldo} d (período ${periodo})`;
+  }else{
+    const maxISO=maxHastaISO(desdeISO, saldo);
+    hint.textContent=`2º tocá el día hasta (máx. ${fmtFechaLargaES(maxISO)})`;
+  }
+  if(dias!=null && dias>=1){
+    hint.textContent=`${dias} día${dias===1?'':'s'} marcados · período ${periodo} (${saldo} disp.)`;
+  }
+}
+function mostrarCalendarioRango(){
+  if(!empSeleccionado) return;
+  const {saldo}=infoSaldoEmp(empSeleccionado);
   const wrap=document.getElementById('calWrap');
-  const mismoAbierto=wrap.classList.contains('open') && (
-    (calCampo==='desde' && document.getElementById('mDesdeBtn').classList.contains('open')) ||
-    (calCampo==='hasta' && document.getElementById('mHastaBtn').classList.contains('open'))
-  );
-  if(mismoAbierto && !forzar){
+  if(!(saldo>0)){
     wrap.classList.remove('open');
-    document.getElementById('mDesdeBtn').classList.remove('open');
-    document.getElementById('mHastaBtn').classList.remove('open');
     return;
   }
-  document.getElementById('mDesdeBtn').classList.toggle('open', calCampo==='desde');
-  document.getElementById('mHastaBtn').classList.toggle('open', calCampo==='hasta');
-  const iso=document.getElementById(calCampo==='desde'?'mDesde':'mHasta').value;
-  const base=(!iso || forzar)? new Date() : fromISODateInput(iso);
+  const base=document.getElementById('mDesde').value
+    ? fromISODateInput(document.getElementById('mDesde').value)
+    : new Date();
   calCursor=new Date(base.getFullYear(), base.getMonth(), 1);
+  pickStep=0;
   wrap.classList.add('open');
-  document.getElementById('calHint').textContent =
-    (calCampo==='desde'
-      ? 'Elegí la fecha desde · '
-      : 'Elegí la fecha hasta (solo dentro del saldo) · ')
-    + hintSaldo();
   renderCal();
 }
 function shiftCal(delta){
@@ -807,15 +810,23 @@ function renderCal(){
     const cls=['day'];
     if(!inMonth) cls.push('out');
     if(sameDay(date,hoy)) cls.push('today');
-    if(desde && hasta && date>=desde && date<=hasta) cls.push('inrange');
+    const inRange = !!(desde && hasta && date>=desde && date<=hasta);
+    if(inRange){
+      cls.push('inrange');
+      if(sameDay(date,desde)) cls.push('range-start');
+      if(sameDay(date,hasta)) cls.push('range-end');
+    }
     if((desde && sameDay(date,desde)) || (hasta && sameDay(date,hasta))) cls.push('sel');
 
+    // Con desde elegido: solo se puede marcar hasta dentro del saldo
     let blocked=false;
-    if(inMonth && calCampo==='hasta' && desde){
+    if(inMonth && !(saldo>0)) blocked=true;
+    if(inMonth && pickStep===1 && desde){
       if(date<desde) blocked=true;
       if(maxHasta && date>maxHasta) blocked=true;
     }
-    if(inMonth && !(saldo>0)) blocked=true;
+    // Si ya hay rango completo y estamos en pickStep 0, al reelegir desde no bloqueamos
+    // Si hay desde+hasta y el usuario quiere cambiar: días fuera del saldo futuro se bloquean tras nuevo desde
     if(blocked) cls.push('blocked');
 
     const iso=toISODateInput(date);
@@ -823,36 +834,29 @@ function renderCal(){
     html+=`<button type="button" class="${cls.join(' ')}" data-iso="${iso}"${disable?' disabled':''}>${dayNum}</button>`;
   }
   grid.innerHTML=html;
+  actualizarHintCal();
   grid.querySelectorAll('.day:not([disabled])').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       const iso=btn.getAttribute('data-iso');
-      if(calCampo==='desde'){
+      if(pickStep===0){
         document.getElementById('mDesde').value=iso;
-        document.getElementById('mHasta').value=iso; // arranca en 1 día; el tope lo marca el saldo
-        clampRangoAlSaldo();
-        calCampo='hasta';
-        document.getElementById('mDesdeBtn').classList.remove('open');
-        document.getElementById('mHastaBtn').classList.add('open');
-        const {periodo, saldo}=infoSaldoEmp(empSeleccionado);
-        const maxISO=maxHastaISO(iso, saldo);
-        document.getElementById('calHint').textContent =
-          `Hasta máximo ${fmtFechaLargaES(maxISO)} (${saldo} día${saldo===1?'':'s'} del período ${periodo})`;
+        document.getElementById('mHasta').value=iso;
+        pickStep=1;
       }else{
         const desdeISO=document.getElementById('mDesde').value;
         if(desdeISO && fromISODateInput(iso)<fromISODateInput(desdeISO)){
           document.getElementById('mDesde').value=iso;
           document.getElementById('mHasta').value=iso;
+          pickStep=1;
         }else{
           document.getElementById('mHasta').value=iso;
+          pickStep=0; // listo: se puede volver a elegir otro tramo tocando de nuevo
         }
-        clampRangoAlSaldo();
-        document.getElementById('calWrap').classList.remove('open');
-        document.getElementById('mDesdeBtn').classList.remove('open');
-        document.getElementById('mHastaBtn').classList.remove('open');
       }
+      clampRangoAlSaldo();
       pintarLabelsFecha();
       syncManualDias();
-      if(document.getElementById('calWrap').classList.contains('open')) renderCal();
+      renderCal(); // mismo calendario, rango marcado; días/período quedan abajo
     });
   });
 }
@@ -882,8 +886,8 @@ function seleccionarEmpleado(e){
   }
 
   document.getElementById('btnManual').disabled=false;
-  setHubMsg(`Período ${periodo}: ${saldo} día${saldo===1?'':'s'} disponibles. El calendario solo permite hasta ese tope.`,'ok');
-  abrirCalendario('desde', true);
+  setHubMsg(`Período ${periodo}: ${saldo} día${saldo===1?'':'s'} disponibles. Marcá desde y hasta en el calendario.`,'ok');
+  mostrarCalendarioRango();
 }
 
 function syncManualDias(){
@@ -1130,22 +1134,11 @@ function iniciar(){
   }else{
     setHubMsg('No se cargó Google Charts.','err');
   }
-  // cerrar sugerencias / calendario al click afuera
+  // cerrar sugerencias de empleado al click afuera
   document.addEventListener('click', (ev)=>{
     const row=document.querySelector('.search-row');
     if(row && !row.contains(ev.target)){
       document.getElementById('empSuggest').classList.remove('open');
-    }
-    const enCal = ev.target.closest && (
-      ev.target.closest('#calWrap') ||
-      ev.target.closest('#mDesdeBtn') ||
-      ev.target.closest('#mHastaBtn')
-    );
-    if(!enCal){
-      const wrap=document.getElementById('calWrap');
-      if(wrap) wrap.classList.remove('open');
-      const db=document.getElementById('mDesdeBtn'); if(db) db.classList.remove('open');
-      const hb=document.getElementById('mHastaBtn'); if(hb) hb.classList.remove('open');
     }
   });
 }

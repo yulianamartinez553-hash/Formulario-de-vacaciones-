@@ -119,6 +119,11 @@
       page-break-after:auto!important;break-after:auto!important;
     }
     *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+    .page{
+      -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
+      background-size:100% 100%!important;
+      image-rendering:auto;
+    }
   }
 
   .gate{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#14295E,#1F3C8C 55%,#3a5bb5);
@@ -145,7 +150,7 @@
   <form class="gate-card" id="gateForm" autocomplete="on">
     <img src="/logo-servinorte.jfif" alt="Servinorte">
     <h1>RRHH · Formulario PDF</h1>
-    <p>Versión <b>v2026-08-05x</b> · Firmas: Encargado de Área + Empleado · Pendientes en 0</p>
+    <p>Versión <b>v2026-08-10b</b> · Firmas: Encargado de Área + Empleado · Pendientes en 0</p>
     <p>Ingresá la clave para generar el PDF con los datos de la última solicitud de REGISTRO.</p>
     <label for="clave">Clave de acceso</label>
     <input id="clave" name="password" type="password" placeholder="Clave RRHH" required>
@@ -481,38 +486,70 @@ function triggerBlobDownload(blob, filename){
 }
 
 async function capturePage(h2c, page, membreteUrl){
+  // A4 ~250 dpi → texto y membrete nítidos al imprimir
+  const W=1984, H=2806;
   const host=document.createElement('div');
   host.setAttribute('data-pdf-capture','1');
-  host.style.cssText='position:fixed;left:-12000px;top:0;width:794px;height:1123px;overflow:hidden;background:#fff;z-index:0;';
+  host.style.cssText='position:fixed;left:-16000px;top:0;width:'+W+'px;height:'+H+'px;overflow:hidden;background:#ffffff;z-index:0;';
+
   const clone=page.cloneNode(true);
-  clone.style.cssText='margin:0;box-shadow:none;width:794px;height:1123px;max-height:1123px;overflow:hidden;position:relative;background:#fff;';
-  // Imagen de membrete real (más fiable que background CSS en html2canvas)
+  clone.className='page';
+  clone.style.cssText=[
+    'margin:0',
+    'box-shadow:none',
+    'width:'+W+'px',
+    'height:'+H+'px',
+    'max-height:'+H+'px',
+    'overflow:hidden',
+    'position:relative',
+    'background:#fff'
+  ].join(';');
+
+  // Membrete como <img> a tamaño completo (evita el escalado borroso del background-size)
+  clone.style.backgroundImage='none';
+  clone.querySelectorAll('img[src*="membrete"]').forEach(n=>n.remove());
   const bg=document.createElement('img');
   bg.src=membreteUrl;
   bg.alt='';
-  bg.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:0;pointer-events:none;';
+  bg.decoding='sync';
+  bg.style.cssText='position:absolute;inset:0;width:100%;height:100%;object-fit:fill;z-index:0;pointer-events:none;image-rendering:auto;';
   clone.insertBefore(bg, clone.firstChild);
+
   const content=clone.querySelector('.content');
-  if(content) content.style.zIndex='1';
+  if(content){
+    content.style.zIndex='1';
+    content.style.top=(40/297*H)+'px';
+    content.style.left='0';
+    content.style.right='0';
+  }
+  const doc=clone.querySelector('.doc');
+  if(doc){
+    const docW=(148/210)*W;
+    doc.style.width=docW+'px';
+    doc.style.maxWidth=docW+'px';
+  }
+
   host.appendChild(clone);
   document.body.appendChild(host);
   try{
     await preloadImage(membreteUrl);
-    await new Promise(r=>setTimeout(r,30));
+    await new Promise(r=>setTimeout(r,60));
     return await h2c(clone,{
-      scale:1.5,
+      scale:1,
       useCORS:true,
       allowTaint:true,
       backgroundColor:'#ffffff',
       logging:false,
-      width:794,
-      height:1123,
-      windowWidth:794,
-      windowHeight:1123,
+      width:W,
+      height:H,
+      windowWidth:W,
+      windowHeight:H,
       scrollX:0,
       scrollY:0,
       x:0,
-      y:0
+      y:0,
+      letterRendering:true,
+      foreignObjectRendering:false
     });
   }finally{
     host.remove();
@@ -522,7 +559,7 @@ async function capturePage(h2c, page, membreteUrl){
 async function descargarPDF(){
   const btn=document.getElementById('btnPdf');
   btn.disabled=true;
-  setEstado("Generando PDF…");
+  setEstado("Generando PDF en alta calidad…");
   const pages=[...document.querySelectorAll('#hojas .page')];
   if(!pages.length){
     setEstado("No hay hojas para exportar.","err");
@@ -540,20 +577,21 @@ async function descargarPDF(){
   try{
     const membreteUrl=getMembreteUrl();
     await preloadImage(membreteUrl);
-    const pdf=new libs.JsPDF({unit:'mm', format:'a4', orientation:'portrait'});
+    const pdf=new libs.JsPDF({unit:'mm', format:'a4', orientation:'portrait', compress:true});
     const nombre=(campos.nombre||"licencia").replace(/[^\wáéíóúñÁÉÍÓÚÑ]+/g,"_").slice(0,40);
     const filename=`Licencia_${nombre}_${campos.anioLicencia||""}.pdf`;
 
     for(let i=0;i<pages.length;i++){
-      setEstado("Generando PDF… hoja "+(i+1)+"/"+pages.length);
+      setEstado("Generando PDF nítido… hoja "+(i+1)+"/"+pages.length);
       const canvas=await capturePage(libs.h2c, pages[i], membreteUrl);
-      const img=canvas.toDataURL('image/jpeg',0.93);
+      // JPEG muy alta calidad: buen equilibrio peso/nitidez (mejor que el 0.93 anterior)
+      const img=canvas.toDataURL('image/jpeg',0.98);
       if(i>0) pdf.addPage();
-      pdf.addImage(img,'JPEG',0,0,210,297);
+      pdf.addImage(img,'JPEG',0,0,210,297, undefined, 'NONE');
     }
 
     triggerBlobDownload(pdf.output('blob'), filename);
-    setEstado("PDF descargado ✓ ("+pages.length+" hojas)","ok");
+    setEstado("PDF descargado ✓ ("+pages.length+" hojas, alta calidad)","ok");
   }catch(err){
     console.error('PDF error', err);
     setEstado("No se pudo generar el PDF: "+(err && err.message ? err.message : err)+". Usá Imprimir → Guardar como PDF.","err");

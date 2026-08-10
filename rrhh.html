@@ -314,7 +314,7 @@ const CONFIG = {
   sheetId: "1aaWSfGKGIU1BhZqNjOgLPn2xC3mVp1gULvEXQvCWI_Q",
   hojaRegistro: "REGISTRO",
   hojaEmpleados: "Empleados",
-  rangoRegistro: "A4:H200",
+  rangoRegistro: "A4:H500",
   rangoEmpleados: "A2:F",
   ciudad: "Ciudad de Salta",
   appsScriptUrl: "https://script.google.com/macros/s/AKfycbwoADdM80IFTeDyZuOu6GWmjd1DFZSwrOSNJM8yZd1ENxk9UjsOFTl-DPQUi2myOphc/exec"
@@ -691,8 +691,12 @@ function pintarRegistros(){
 }
 
 function abrirRegistro(r){
+  const emp=empleadosHub.find(e=>normName(e.nombre)===normName(r.empleado))
+    || empleadosHub.find(e=>String(e.legajo)===String(r.leg));
   const data={
-    leg:r.leg, empleado:r.empleado, puesto:r.puesto,
+    leg:r.leg || (emp&&emp.legajo) || '',
+    empleado:r.empleado,
+    puesto:r.puesto || (emp&&emp.puesto) || '',
     desde:r.desde, hasta:r.hasta, dias:r.dias,
     periodo:r.periodo, estado:r.estado, pend:r.pend||'0'
   };

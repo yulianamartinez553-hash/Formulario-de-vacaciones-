@@ -1340,9 +1340,22 @@ async function cargarHub(){
     pintarRegistros();
     pintarControl();
     setHubMsg(`${registros.length} registros cargados`,'ok');
+    preseleccionarDesdeURL();
   }catch(err){
     list.innerHTML=`<div class="hub-msg err">No se pudo cargar: ${esc(err.message||err)}</div>`;
     setHubMsg('Error al leer Supabase.','err');
+  }
+}
+
+/** Si viene ?buscar=<legajo o nombre> en la URL, preselecciona ese empleado en el hub. */
+function preseleccionarDesdeURL(){
+  const q=(new URLSearchParams(location.search).get('buscar')||'').trim();
+  if(!q) return;
+  const emp = empleadosHub.find(e=>String(e.legajo)===q) || empleadosHub.find(e=>matchesEmp(e,q));
+  if(emp){
+    seleccionarEmpleado(emp);
+    const pane=document.querySelector('.pane-reg');
+    if(pane) pane.scrollIntoView({behavior:'smooth', block:'start'});
   }
 }
 

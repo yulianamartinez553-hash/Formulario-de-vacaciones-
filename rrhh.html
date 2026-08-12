@@ -1295,18 +1295,21 @@ async function cargarHub(){
   const list=document.getElementById('regList');
   list.innerHTML=`<div class="hub-msg">Cargando…</div>`;
   try{
-    const [empRes, saldoRes, solRes] = await Promise.all([
+    const [empRes, saldoRes, solRes, histRes] = await Promise.all([
       sb.from('vac_empleados').select('*').eq('activo', true).order('nombre'),
       sb.from('vac_saldos').select('*'),
-      sb.from('vac_solicitudes').select('*').order('fecha_inicio', {ascending:false})
+      sb.from('vac_solicitudes').select('*').order('fecha_inicio', {ascending:false}),
+      sb.from('vac_hist_solicitudes').select('*').order('fecha_inicio', {ascending:false})
     ]);
     if(empRes.error) throw empRes.error;
     if(saldoRes.error) throw saldoRes.error;
     if(solRes.error) throw solRes.error;
+    if(histRes.error) throw histRes.error;
 
     const emps=empRes.data||[];
     const saldos=saldoRes.data||[];
     const sols=solRes.data||[];
+    const hist=histRes.data||[];
     const hoy=new Date();
 
     const saldosByEmp={}, solsByEmp={};
@@ -1327,16 +1330,31 @@ async function cargarHub(){
 
     const empById={};
     emps.forEach(e=>{ empById[e.id]=e; });
-    registros = sols.map(s=>{
+    const empByCodigo={};
+    emps.forEach(e=>{ empByCodigo[e.codigo]=e; });
+    const MARCA_HIST_LABEL={normal:'Realizada', pagada:'Pagada', bonificacion:'Bonificación', revisar:'A revisar'};
+
+    const registrosApp = sols.map(s=>{
       const emp=empById[s.empleado_id];
       return {
         leg: emp?emp.legajo:'', empleado: emp?emp.nombre:'',
         puesto: s.puesto||(emp?emp.puesto:''),
         desde: fmtFechaDesdeISO(s.fecha_inicio), hasta: fmtFechaDesdeISO(s.fecha_fin),
         dias:String(s.dias), periodo:String(s.periodo), estado:s.estado, pend:'0',
-        empleado_id:s.empleado_id
+        empleado_id:s.empleado_id, _fi:s.fecha_inicio
       };
     });
+    const registrosHist = hist.map(h=>{
+      const emp=empByCodigo[h.codigo];
+      return {
+        leg: emp?emp.legajo:h.codigo, empleado: emp?emp.nombre:h.codigo,
+        puesto: emp?emp.puesto:'',
+        desde: fmtFechaDesdeISO(h.fecha_inicio), hasta: fmtFechaDesdeISO(h.fecha_fin),
+        dias:String(h.dias), periodo:String(h.periodo), estado: MARCA_HIST_LABEL[h.marca]||h.marca, pend:'0',
+        empleado_id: emp?emp.id:null, _fi:h.fecha_inicio
+      };
+    });
+    registros = [...registrosApp, ...registrosHist].sort((a,b)=> a._fi < b._fi ? 1 : -1);
     pintarRegistros();
     pintarControl();
     setHubMsg(`${registros.length} registros cargados`,'ok');

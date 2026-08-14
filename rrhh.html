@@ -622,6 +622,17 @@ let enviado = false;
 function fechaHoy(){
   return new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
 }
+/** Fecha del encabezado del documento: hoy, salvo que caiga fuera de los 7 días previos al inicio de la licencia (en ese caso, se fija en "inicio - 7 días"). */
+function fechaDocumentoDesde(fechaInicioStr){
+  const inicio=parseFecha(fechaInicioStr);
+  if(!inicio) return fechaHoy();
+  const soloFecha=(d)=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  const inicio0=soloFecha(inicio);
+  const limite0=soloFecha(inicio); limite0.setDate(limite0.getDate()-7);
+  const hoy0=soloFecha(new Date());
+  const usar=(hoy0>=limite0 && hoy0<=inicio0) ? hoy0 : limite0;
+  return usar.toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+}
 function fmtFecha(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear(); }
 function parseFecha(v){
   if(v instanceof Date) return v;
@@ -704,7 +715,7 @@ function aplicarCampos(data, origen){
   campos.periodoPendiente = data.periodo || "—";
   campos.anioLicencia = data.periodo || "—";
   campos.estado = data.estado || "";
-  campos.fecha = fechaHoy();
+  campos.fecha = fechaDocumentoDesde(data.desde);
   render();
   const est = campos.estado ? ` · Estado: ${campos.estado}` : "";
   setEstado(`Autocompletado desde ${origen}${est}. Descargá PDF o imprimí.`,"ok");

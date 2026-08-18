@@ -580,7 +580,7 @@ const PERIODOS_HOJA = [2023, 2024, 2025, 2026];
 /* Períodos usados para asignar vacaciones / filtros pendiente */
 const PERIODOS = [2024, 2025, 2026];
 /* Columnas de períodos en la tabla de control (encabezados fijos) */
-const PERIODOS_TABLA = [2023, 2024, 2025];
+const PERIODOS_TABLA = [2024, 2025, 2026];
 
 const OTRA_SOCIEDAD = new Set([
   "VELARDE MAURO GASTON",
@@ -1345,7 +1345,10 @@ async function cargarHub(){
     emps.forEach(e=>{ empByCodigo[e.codigo]=e; });
     const MARCA_HIST_LABEL={normal:'Realizada', pagada:'Pagada', bonificacion:'Bonificación', revisar:'A revisar'};
 
-    const registrosApp = sols.map(s=>{
+    // Las filas origen "planilla" son copia espejo de vac_hist_solicitudes
+    // (mismo período/fechas) usada para el cálculo de saldos — se listan acá
+    // vía "registrosHist" para no duplicar el mismo período dos veces.
+    const registrosApp = sols.filter(s=>s.origen!=='planilla').map(s=>{
       const emp=empById[s.empleado_id];
       return {
         leg: emp?emp.legajo:'', empleado: emp?emp.nombre:'',

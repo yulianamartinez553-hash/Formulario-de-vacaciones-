@@ -237,6 +237,8 @@
   .cal-grid .day.blocked{color:#b8c0d0;cursor:not-allowed;text-decoration:line-through;opacity:.5;}
   .cal-grid .day.blocked:hover{background:transparent;}
   .cal-grid .day.today{box-shadow:inset 0 0 0 1.5px var(--azul-servinorte);}
+  .cal-grid .day.feriado:not(.blocked){color:#b91c1c;font-weight:600;}
+  .cal-grid .day.feriado.blocked{color:#b91c1c;}
   .cal-grid .day.inrange{background:rgba(31,61,129,.16);border-radius:0;}
   .cal-grid .day.inrange.range-start{border-radius:6px 0 0 6px;}
   .cal-grid .day.inrange.range-end{border-radius:0 6px 6px 0;}
@@ -575,6 +577,37 @@ function fmtFechaDesdeISO(iso){
   return d ? fmtSlash(d) : '';
 }
 
+/* ===== Feriados nacionales AR (idéntico a lib/feriados-ar.ts de la intranet) =====
+   LCT: un feriado dentro del período no se descuenta como día de vacación, y
+   las vacaciones no pueden empezar en domingo ni en feriado. Actualizar esta
+   tabla cuando el Gobierno publique el calendario del próximo año. */
+const FERIADOS_AR = {
+  "2023-01-01":1,"2023-02-20":1,"2023-02-21":1,"2023-03-24":1,"2023-04-02":1,"2023-04-06":1,"2023-04-07":1,
+  "2023-05-01":1,"2023-05-25":1,"2023-06-20":1,"2023-07-09":1,"2023-08-21":1,"2023-10-16":1,"2023-11-20":1,
+  "2023-12-08":1,"2023-12-25":1,
+  "2024-01-01":1,"2024-02-12":1,"2024-02-13":1,"2024-03-24":1,"2024-03-28":1,"2024-03-29":1,"2024-04-01":1,
+  "2024-04-02":1,"2024-05-01":1,"2024-05-25":1,"2024-06-17":1,"2024-06-20":1,"2024-06-21":1,"2024-07-09":1,
+  "2024-08-17":1,"2024-10-11":1,"2024-10-12":1,"2024-11-18":1,"2024-12-08":1,"2024-12-25":1,
+  "2025-01-01":1,"2025-03-03":1,"2025-03-04":1,"2025-03-24":1,"2025-04-02":1,"2025-04-17":1,"2025-04-18":1,
+  "2025-05-01":1,"2025-05-02":1,"2025-05-25":1,"2025-06-16":1,"2025-06-20":1,"2025-07-09":1,"2025-08-15":1,
+  "2025-08-17":1,"2025-10-12":1,"2025-11-21":1,"2025-11-24":1,"2025-12-08":1,"2025-12-25":1,
+  "2026-01-01":1,"2026-02-16":1,"2026-02-17":1,"2026-03-23":1,"2026-03-24":1,"2026-04-02":1,"2026-04-03":1,
+  "2026-05-01":1,"2026-05-25":1,"2026-06-15":1,"2026-06-20":1,"2026-07-09":1,"2026-07-10":1,"2026-08-17":1,
+  "2026-10-12":1,"2026-11-23":1,"2026-12-07":1,"2026-12-08":1,"2026-12-25":1
+};
+function esFeriado(iso){ return !!FERIADOS_AR[iso]; }
+function esDomingo(iso){ const d=fromISODateInput(iso); return !!d && d.getDay()===0; }
+/** LCT: no se puede iniciar vacaciones en domingo ni en feriado nacional. */
+function esInicioValido(iso){ return !esDomingo(iso) && !esFeriado(iso); }
+/** Primer día >= desde que no sea domingo ni feriado (para autocompletar 'desde'). */
+function proximoInicioValido(iso){
+  let cursor=fromISODateInput(iso);
+  if(!cursor) return iso;
+  let guard=0;
+  while(!esInicioValido(toISODateInput(cursor)) && guard<60){ cursor=addDiasDate(cursor,1); guard++; }
+  return toISODateInput(cursor);
+}
+
 /* Columnas CONTROL: C=2023 … F=2026 */
 const PERIODOS_HOJA = [2023, 2024, 2025, 2026];
 /* Períodos usados para asignar vacaciones / filtros pendiente */
@@ -771,10 +804,16 @@ function fromISODateInput(v){
   const [y,m,d]=v.split('-').map(Number);
   return new Date(y,m-1,d);
 }
+/** Días corridos entre a y b (inclusive) que NO son feriado — un feriado dentro
+ * del rango no se descuenta del saldo de vacaciones (criterio RRHH/LCT). */
 function diasEntreISO(a,b){
   const da=fromISODateInput(a), db=fromISODateInput(b);
   if(!da||!db||db<da) return null;
-  return Math.round((db-da)/(24*3600*1000))+1;
+  let n=0;
+  for(let c=new Date(da.getFullYear(),da.getMonth(),da.getDate()); c<=db; c=addDiasDate(c,1)){
+    if(!esFeriado(toISODateInput(c))) n++;
+  }
+  return n;
 }
 function fmtSlash(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear(); }
 
@@ -848,9 +887,21 @@ function addDiasDate(d,n){
   x.setDate(x.getDate()+n);
   return x;
 }
+/** Última fecha posible eligiendo "desde" tal que se consuman exactamente
+ * "saldo" días hábiles (los feriados en el medio extienden el rango sin
+ * consumir saldo extra). */
 function maxHastaISO(desdeISO, saldo){
   if(!desdeISO || !(saldo>0)) return null;
-  return toISODateInput(addDiasDate(fromISODateInput(desdeISO), saldo-1));
+  let contados=0, cursor=fromISODateInput(desdeISO), ultimo=cursor;
+  let guard=0;
+  while(contados<saldo && guard<400){
+    if(!esFeriado(toISODateInput(cursor))) contados++;
+    ultimo=cursor;
+    if(contados>=saldo) break;
+    cursor=addDiasDate(cursor,1);
+    guard++;
+  }
+  return toISODateInput(ultimo);
 }
 function clampRangoAlSaldo(){
   if(!empSeleccionado) return;
@@ -967,6 +1018,10 @@ function renderCal(){
     }
     if((desde && sameDay(date,desde)) || (hasta && sameDay(date,hasta))) cls.push('sel');
 
+    const iso=toISODateInput(date);
+    const feriadoHoy=esFeriado(iso);
+    if(feriadoHoy) cls.push('feriado');
+
     // Con desde elegido: solo se puede marcar hasta dentro del saldo
     let blocked=false;
     if(inMonth && !(saldo>0)) blocked=true;
@@ -974,11 +1029,12 @@ function renderCal(){
       if(date<desde) blocked=true;
       if(maxHasta && date>maxHasta) blocked=true;
     }
+    // LCT: las vacaciones no pueden empezar en domingo ni en feriado nacional.
+    if(inMonth && pickStep===0 && !esInicioValido(iso)) blocked=true;
     // Si ya hay rango completo y estamos en pickStep 0, al reelegir desde no bloqueamos
     // Si hay desde+hasta y el usuario quiere cambiar: días fuera del saldo futuro se bloquean tras nuevo desde
     if(blocked) cls.push('blocked');
 
-    const iso=toISODateInput(date);
     const disable = !inMonth || blocked;
     html+=`<button type="button" class="${cls.join(' ')}" data-iso="${iso}"${disable?' disabled':''}>${dayNum}</button>`;
   }
@@ -1020,9 +1076,11 @@ function seleccionarEmpleado(e){
   document.getElementById('mAntig').textContent=e.antiguedad||'—';
 
   const {periodo, saldo}=infoSaldoEmp(e);
-  const hoy=toISODateInput(new Date());
-  document.getElementById('mDesde').value = saldo>0 ? hoy : '';
-  document.getElementById('mHasta').value = saldo>0 ? hoy : '';
+  // LCT: no puede arrancar en domingo ni feriado — si "hoy" cae en uno, se
+  // sugiere el primer día hábil siguiente.
+  const inicioSugerido = proximoInicioValido(toISODateInput(new Date()));
+  document.getElementById('mDesde').value = saldo>0 ? inicioSugerido : '';
+  document.getElementById('mHasta').value = saldo>0 ? inicioSugerido : '';
   clampRangoAlSaldo();
   pintarLabelsFecha();
   syncManualDias();

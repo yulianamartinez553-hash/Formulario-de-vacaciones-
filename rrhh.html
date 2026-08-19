@@ -201,6 +201,11 @@
     min-height:42px;border:1.5px solid #e2e7f0;border-radius:10px;background:#f3f5fb;
     padding:10px 12px;font-weight:600;color:var(--azul-servinorte);display:flex;align-items:center;
   }
+  .meta-grid .fld-select{
+    min-height:42px;border:1.5px solid #e2e7f0;border-radius:10px;background:#f3f5fb;
+    padding:10px 12px;font:inherit;font-weight:600;color:var(--azul-servinorte);cursor:pointer;
+  }
+  .meta-grid .fld-select:disabled{cursor:default;opacity:.6;}
   .date-summary{
     grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px;
   }
@@ -420,7 +425,11 @@
           </div>
           <div class="meta-after-cal">
             <div class="fld"><label>Días solicitados</label><div class="val" id="mDias">—</div></div>
-            <div class="fld"><label>Período / saldo</label><div class="val" id="mPeriodo">—</div></div>
+            <div class="fld"><label>Período</label>
+              <select class="fld-select" id="mPeriodoSel" onchange="onCambioPeriodoManual()" disabled>
+                <option value="">—</option>
+              </select>
+            </div>
           </div>
         </div>
         <div class="hub-actions">
@@ -871,16 +880,46 @@ const DIAS_ES=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 let calCursor=new Date();
 let pickStep=0; // 0 = elegir desde, 1 = elegir hasta (mismo calendario)
 
+/** Período más viejo con saldo > 0 (se busca en TODOS los períodos con datos,
+ * no solo los 3 últimos, para poder cerrar deuda vieja como 2023). */
 function periodoPrioritario(emp){
-  for(const p of PERIODOS){
+  for(const p of PERIODOS_HOJA){
     if((emp.saldos && emp.saldos[p])>0) return p;
   }
-  return PERIODOS[PERIODOS.length-1];
+  return PERIODOS_HOJA[PERIODOS_HOJA.length-1];
 }
+/** Todos los períodos donde el empleado tiene saldo > 0 (para el selector manual). */
+function periodosConSaldo(emp){
+  if(!emp || !emp.saldos) return [];
+  return PERIODOS_HOJA.filter(p => (emp.saldos[p]||0) > 0);
+}
+// Override manual del período (elegido en el <select>); null = usar el prioritario (el más viejo con saldo).
+let periodoManual = null;
 function infoSaldoEmp(emp){
   if(!emp || !emp.saldos) return {periodo:null, saldo:0};
-  const periodo=periodoPrioritario(emp);
+  const periodo = (periodoManual!=null && (emp.saldos[periodoManual]||0)>0) ? periodoManual : periodoPrioritario(emp);
   return {periodo, saldo: emp.saldos[periodo]||0};
+}
+function pintarPeriodoSelect(emp){
+  const sel=document.getElementById('mPeriodoSel');
+  if(!sel) return;
+  const disponibles=periodosConSaldo(emp);
+  if(!disponibles.length){ sel.innerHTML='<option value="">Sin saldo</option>'; sel.disabled=true; return; }
+  const actual=infoSaldoEmp(emp).periodo;
+  sel.disabled=false;
+  sel.innerHTML=disponibles.map(p=>{
+    const d=emp.saldos[p]||0;
+    return `<option value="${p}"${p===actual?' selected':''}>${p} · ${d} d</option>`;
+  }).join('');
+}
+function onCambioPeriodoManual(){
+  if(!empSeleccionado) return;
+  const sel=document.getElementById('mPeriodoSel');
+  periodoManual = sel.value ? Number(sel.value) : null;
+  clampRangoAlSaldo();
+  pintarLabelsFecha();
+  syncManualDias();
+  mostrarCalendarioRango();
 }
 function addDiasDate(d,n){
   const x=new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -1068,12 +1107,14 @@ function renderCal(){
 
 function seleccionarEmpleado(e){
   empSeleccionado=e;
+  periodoManual=null; // nuevo empleado: vuelve a auto-elegir el período más viejo con saldo
   document.getElementById('empSearch').value=e.nombre;
   document.getElementById('empSuggest').classList.remove('open');
   document.getElementById('mLeg').textContent=e.legajo||'—';
   document.getElementById('mNom').textContent=e.nombre||'—';
   document.getElementById('mPuesto').textContent=e.puesto||'—';
   document.getElementById('mAntig').textContent=e.antiguedad||'—';
+  pintarPeriodoSelect(e);
 
   const {periodo, saldo}=infoSaldoEmp(e);
   // LCT: no puede arrancar en domingo ni feriado — si "hoy" cae en uno, se
@@ -1105,13 +1146,12 @@ function syncManualDias(){
   const dias=diasEntreISO(a,b);
   document.getElementById('mDias').textContent = dias!=null ? String(dias) : '—';
   if(!empSeleccionado){
-    document.getElementById('mPeriodo').textContent='—';
+    document.getElementById('mPeriodoSel').innerHTML='<option value="">—</option>';
+    document.getElementById('mPeriodoSel').disabled=true;
     document.getElementById('btnManual').disabled=true;
     return;
   }
   const {periodo, saldo}=infoSaldoEmp(empSeleccionado);
-  document.getElementById('mPeriodo').textContent =
-    saldo>0 ? `${periodo} · ${saldo} disp.` : 'Sin saldo';
   const ok = saldo>0 && dias!=null && dias>=1 && dias<=saldo;
   document.getElementById('btnManual').disabled = !ok;
   if(saldo>0 && dias!=null && dias>saldo){

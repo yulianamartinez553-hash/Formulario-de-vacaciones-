@@ -75,6 +75,9 @@
     padding:9px 16px;border-radius:6px;cursor:pointer;}
   .btn.solid{background:var(--azul-primario);color:#fff;}
   .btn:disabled{opacity:.45;cursor:not-allowed;}
+  .fecha-doc-edit{display:flex;align-items:center;gap:6px;font-family:'Barlow',sans-serif;font-size:12px;color:#e7ecf6;}
+  .fecha-doc-edit input[type=date]{font:inherit;padding:7px 8px;border-radius:6px;border:1.5px solid var(--azul-primario);color:var(--azul-primario);background:#fff;}
+  .fecha-doc-edit .btn{padding:7px 10px;font-size:11px;}
 
   /* Export / print: cada .page = exactamente 1 A4 */
   body.pdf-export{
@@ -162,6 +165,11 @@
 <div class="toolbar no-print">
   <img class="logo" src="/logo-servinorte.jfif" alt="Servinorte SRL" width="42" height="42">
   <span class="estado" id="estado">RRHH · PDF licencia (última de REGISTRO)…</span>
+  <div class="fecha-doc-edit no-print">
+    <label for="fechaDocInput">Fecha del encabezado</label>
+    <input type="date" id="fechaDocInput" onchange="onCambioFechaDoc()" title="Por defecto: hoy, o hasta 7 días antes del inicio de la licencia. Editable.">
+    <button type="button" class="btn" onclick="restablecerFechaDoc()" title="Volver a la fecha calculada automáticamente">Restablecer</button>
+  </div>
   <button class="btn" id="btnReg" onclick="cargarDesdeRegistro()">Actualizar desde REGISTRO</button>
   <button class="btn solid" id="btnPdf" onclick="descargarPDF()">Descargar PDF</button>
   <button class="btn" onclick="imprimirHojas()">Imprimir</button>
@@ -237,16 +245,44 @@ let enviado = false;
 function fechaHoy(){
   return new Date().toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
 }
-/** Fecha del encabezado del documento: hoy, salvo que caiga fuera de los 7 días previos al inicio de la licencia (en ese caso, se fija en "inicio - 7 días"). */
-function fechaDocumentoDesde(fechaInicioStr){
+/** Fecha por defecto del encabezado: hoy, salvo que caiga fuera de los 7 días
+ * previos al inicio de la licencia (en ese caso, se fija en "inicio - 7 días").
+ * Devuelve el Date (sin formatear) — se puede editar a mano desde el toolbar. */
+function fechaDocumentoAutoDate(fechaInicioStr){
   const inicio=parseFecha(fechaInicioStr);
-  if(!inicio) return fechaHoy();
   const soloFecha=(d)=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  if(!inicio) return soloFecha(new Date());
   const inicio0=soloFecha(inicio);
   const limite0=soloFecha(inicio); limite0.setDate(limite0.getDate()-7);
   const hoy0=soloFecha(new Date());
-  const usar=(hoy0>=limite0 && hoy0<=inicio0) ? hoy0 : limite0;
-  return usar.toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+  return (hoy0>=limite0 && hoy0<=inicio0) ? hoy0 : limite0;
+}
+function fmtFechaLargaES(d){
+  return d.toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+}
+function toISODateLocal(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function fromISODateLocal(v){
+  if(!v) return null;
+  const [y,m,d]=String(v).split('-').map(Number);
+  if(!y||!m||!d) return null;
+  return new Date(y,m-1,d);
+}
+// ISO de la fecha calculada automáticamente para el registro actual, para poder "Restablecer".
+let fechaDocAutoISO = null;
+function onCambioFechaDoc(){
+  const d=fromISODateLocal(document.getElementById('fechaDocInput').value);
+  if(!d) return;
+  campos.fecha = fmtFechaLargaES(d);
+  render();
+  setEstado('Fecha del encabezado editada a mano.','warn');
+}
+function restablecerFechaDoc(){
+  if(!fechaDocAutoISO) return;
+  document.getElementById('fechaDocInput').value = fechaDocAutoISO;
+  onCambioFechaDoc();
 }
 function fmtFecha(d){ return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear(); }
 function parseFecha(v){
@@ -330,7 +366,11 @@ function aplicarCampos(data, origen){
   campos.periodoPendiente = data.periodo || "—";
   campos.anioLicencia = data.periodo || "—";
   campos.estado = data.estado || "";
-  campos.fecha = fechaDocumentoDesde(data.desde);
+  const fechaAuto = fechaDocumentoAutoDate(data.desde);
+  fechaDocAutoISO = toISODateLocal(fechaAuto);
+  campos.fecha = fmtFechaLargaES(fechaAuto);
+  const inputFecha = document.getElementById('fechaDocInput');
+  if(inputFecha) inputFecha.value = fechaDocAutoISO;
   render();
   const est = campos.estado ? ` · Estado: ${campos.estado}` : "";
   setEstado(`Autocompletado desde ${origen}${est}. Descargá PDF o imprimí.`,"ok");

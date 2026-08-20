@@ -1435,7 +1435,7 @@ async function cargarHub(){
   list.innerHTML=`<div class="hub-msg">Cargando…</div>`;
   try{
     const [empRes, saldoRes, solRes, histRes] = await Promise.all([
-      sb.from('vac_empleados').select('*').eq('activo', true).order('nombre'),
+      sb.from('vac_empleados_publico').select('*').eq('activo', true).order('nombre'),
       sb.from('vac_saldos').select('*'),
       sb.from('vac_solicitudes').select('*').order('fecha_inicio', {ascending:false}),
       sb.from('vac_hist_solicitudes').select('*').order('fecha_inicio', {ascending:false})

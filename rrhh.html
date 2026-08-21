@@ -300,25 +300,29 @@
   }
   .chip-sq:last-child{border-right:none;}
   .chip-sq.on{background:var(--azul-servinorte);color:#fff;}
-  .sector-wrap{position:relative;}
-  .sector-btn{
-    font-family:'Barlow Semi Condensed',sans-serif;font-size:13px;letter-spacing:.3px;
-    border:1.5px solid var(--azul-servinorte);color:var(--azul-servinorte);background:#fff;
-    border-radius:4px;padding:7px 12px;cursor:pointer;width:100%;text-align:left;
-    display:flex;align-items:center;justify-content:space-between;gap:8px;
+  .vac-cal{margin:2px 0 12px;flex:none;}
+  .vac-cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+  .vac-cal-title{font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:.5px;text-transform:uppercase;color:var(--azul-servinorte);}
+  .vac-cal-nav{display:flex;gap:5px;}
+  .vac-cal-nav .btn{padding:4px 9px;font-size:10px;width:auto;}
+  .vac-cal-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;}
+  .vac-cal-dow div{font-family:'Barlow',sans-serif;font-size:9.5px;text-transform:uppercase;color:#8a93a6;text-align:center;padding:2px 0;}
+  .cal-week{position:relative;margin-bottom:2px;}
+  .cal-days{display:grid;grid-template-columns:repeat(7,1fr);height:100%;}
+  .cal-day{border:1px solid #e7eaf2;background:#fff;padding:2px 3px;position:relative;box-sizing:border-box;}
+  .cal-day.empty{background:#fafbfd;border-color:#f1f3f8;}
+  .cal-day.today{border-color:var(--azul-servinorte);border-width:1.5px;}
+  .cal-daynum{font-family:'Barlow',sans-serif;font-size:9.5px;color:#8a93a6;}
+  .cal-day.today .cal-daynum{color:var(--azul-servinorte);font-weight:700;}
+  .cal-extra{position:absolute;bottom:1px;right:3px;font-size:8.5px;color:#8a93a6;font-family:'Barlow',sans-serif;}
+  .cal-bars{position:absolute;inset:0;pointer-events:none;}
+  .cal-bar{
+    position:absolute;border-radius:3px;background:#0d1f4a;color:#fff;
+    font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:.2px;
+    display:flex;align-items:center;padding:0 6px;overflow:hidden;
+    white-space:nowrap;text-overflow:ellipsis;pointer-events:auto;cursor:pointer;box-sizing:border-box;
   }
-  .sector-btn::after{content:"▾";font-size:11px;}
-  .sector-menu{
-    display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:40;
-    background:#fff;border:1px solid #d5dbe8;border-radius:8px;
-    box-shadow:0 12px 28px rgba(31,61,129,.14);max-height:220px;overflow:auto;padding:4px;
-  }
-  .sector-menu.open{display:block;}
-  .sector-menu button{
-    display:block;width:100%;text-align:left;border:none;background:transparent;
-    font:inherit;font-size:13px;padding:8px 10px;border-radius:6px;cursor:pointer;color:#222;
-  }
-  .sector-menu button:hover,.sector-menu button.on{background:rgba(31,61,129,.08);color:var(--azul-servinorte);}
+  .cal-bar:hover{filter:brightness(1.15);}
   .ctrl-grupo{
     font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:13px;text-transform:uppercase;
     color:var(--azul-servinorte);margin:6px 0 8px;
@@ -487,11 +491,23 @@
             <button type="button" class="chip-sq" id="chip-2026" onclick="setFiltroPeriodo(2026)">2026</button>
           </div>
         </div>
-        <div class="sector-wrap">
-          <button type="button" class="sector-btn" id="sectorBtn" onclick="toggleSectorMenu()">Sector: Todos</button>
-          <div class="sector-menu" id="sectorMenu"></div>
-        </div>
       </div>
+
+      <div class="vac-cal" id="vacCal">
+        <div class="vac-cal-head">
+          <div class="vac-cal-title" id="vacCalTitle">—</div>
+          <div class="vac-cal-nav">
+            <button type="button" class="btn" id="vacCalPrev" aria-label="Mes anterior">‹</button>
+            <button type="button" class="btn" id="vacCalHoy">Hoy</button>
+            <button type="button" class="btn" id="vacCalNext" aria-label="Mes siguiente">›</button>
+          </div>
+        </div>
+        <div class="vac-cal-dow">
+          <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+        </div>
+        <div id="vacCalBody"></div>
+      </div>
+
       <div id="ctrlTablas"></div>
     </section>
 
@@ -767,7 +783,8 @@ let registros = [];
 let empleadosHub = [];
 let empSeleccionado = null;
 let filtroPeriodo = null;
-let filtroSector = null;
+let calAno = null;
+let calMes = null;
 
 const COPIAS = [
   {tag:"Original · Empleado", fill:true},
@@ -1417,36 +1434,129 @@ function setFiltroPeriodo(p){
   });
   pintarControl();
 }
-function sectoresDisponibles(){
-  const set=new Set();
-  empleadosHub.forEach(e=>{
-    const s=(e.puesto||'').trim();
-    if(s) set.add(s);
-  });
-  return [...set].sort((a,b)=>a.localeCompare(b,'es'));
+/* ===== Calendario mensual de vacaciones (reemplaza al filtro de sector) =====
+   Muestra los períodos registrados como barras continuas por semana, con
+   asignación de "carril" (lane) global por evento para que un período que
+   cruza semanas mantenga la misma fila visualmente. */
+const MAX_LANES_CAL=2;
+
+function diffDiasCal(a,b){
+  const da=new Date(a.getFullYear(),a.getMonth(),a.getDate());
+  const db=new Date(b.getFullYear(),b.getMonth(),b.getDate());
+  return Math.round((da-db)/86400000);
 }
-function renderSectorMenu(){
-  const menu=document.getElementById('sectorMenu');
-  const btn=document.getElementById('sectorBtn');
-  if(!menu || !btn) return;
-  const secs=sectoresDisponibles();
-  const items=[{v:null,l:'Todos'}, ...secs.map(s=>({v:s,l:s}))];
-  menu.innerHTML=items.map(it=>`
-    <button type="button" class="${(filtroSector||null)===(it.v||null)?'on':''}" data-v="${it.v==null?'':encodeURIComponent(it.v)}">${esc(it.l)}</button>
-  `).join('');
-  menu.querySelectorAll('button').forEach(b=>{
-    b.addEventListener('click', ()=>{
-      const raw=b.getAttribute('data-v');
-      filtroSector = raw ? decodeURIComponent(raw) : null;
-      btn.textContent = 'Sector: ' + (filtroSector || 'Todos');
-      menu.classList.remove('open');
-      pintarControl();
+function construirGrillaMes(ano, mes){
+  const primerDia=new Date(ano, mes, 1);
+  const dow=primerDia.getDay();
+  const offset=(dow===0?6:dow-1);
+  const ultimoDia=new Date(ano, mes+1, 0).getDate();
+  const filas=Math.ceil((offset+ultimoDia)/7);
+  const inicio=new Date(ano, mes, 1-offset);
+  const semanas=[];
+  for(let f=0; f<filas; f++){
+    const semana=[];
+    for(let i=0;i<7;i++){
+      const d=new Date(inicio); d.setDate(inicio.getDate()+f*7+i);
+      semana.push({date:d, inMonth:d.getMonth()===mes});
+    }
+    semanas.push(semana);
+  }
+  return semanas;
+}
+function eventosDelMes(ano, mes){
+  const inicioMes=new Date(ano, mes, 1);
+  const finMes=new Date(ano, mes+1, 0);
+  return registros
+    .filter(r=>r.estado!=='ANULADA' && r._hi && r._hf)
+    .map(r=>({ r, ini:parseFechaISO(r._hi), fin:parseFechaISO(r._hf) }))
+    .filter(ev=>ev.ini && ev.fin && ev.fin>=inicioMes && ev.ini<=finMes)
+    .sort((a,b)=> a.ini-b.ini || (b.fin-b.ini)-(a.fin-a.ini));
+}
+function asignarLanesCal(eventos){
+  const lanesFin=[];
+  eventos.forEach(ev=>{
+    let lane=0;
+    while(lanesFin[lane]!==undefined && lanesFin[lane]>=ev.ini) lane++;
+    lanesFin[lane]=ev.fin;
+    ev.lane=lane;
+  });
+  return eventos;
+}
+function pintarCalendario(){
+  const titleEl=document.getElementById('vacCalTitle');
+  const body=document.getElementById('vacCalBody');
+  if(!titleEl || !body) return;
+  if(calAno==null){ const h=new Date(); calAno=h.getFullYear(); calMes=h.getMonth(); }
+  const nombreMes = MESES_ES[calMes];
+  titleEl.textContent = `${nombreMes.charAt(0).toUpperCase()}${nombreMes.slice(1)} ${calAno}`;
+
+  const semanas=construirGrillaMes(calAno, calMes);
+  const eventos=asignarLanesCal(eventosDelMes(calAno, calMes));
+  const hoy=new Date();
+
+  const maxLane = eventos.reduce((m,ev)=>Math.max(m, ev.lane), -1);
+  const lanesVisibles = Math.max(0, Math.min(MAX_LANES_CAL, maxLane+1));
+  const barH = lanesVisibles<=1 ? 21 : 15;
+  const barFont = lanesVisibles<=1 ? 12.5 : 10;
+  const barGap = 2;
+  const dayNumH = 13;
+  const necesitaExtra = eventos.some(ev=>ev.lane>=MAX_LANES_CAL);
+  const rowH = dayNumH + 3 + (lanesVisibles>0 ? lanesVisibles*barH + Math.max(0,lanesVisibles-1)*barGap : 0) + (necesitaExtra?11:3);
+
+  body.innerHTML = semanas.map(semana=>{
+    const weekStart=semana[0].date, weekEnd=semana[6].date;
+    const eventosSemana = eventos.filter(ev => ev.fin>=weekStart && ev.ini<=weekEnd);
+
+    const dias = semana.map(c=>{
+      const d=c.date;
+      const esHoy = c.inMonth && d.getFullYear()===hoy.getFullYear() && d.getMonth()===hoy.getMonth() && d.getDate()===hoy.getDate();
+      const extras = eventosSemana.filter(ev=> ev.lane>=MAX_LANES_CAL && d>=ev.ini && d<=ev.fin).length;
+      return `<div class="cal-day ${c.inMonth?'':'empty'} ${esHoy?'today':''}">
+        ${c.inMonth ? `<span class="cal-daynum">${d.getDate()}</span>` : ''}
+        ${extras>0 ? `<span class="cal-extra">+${extras}</span>` : ''}
+      </div>`;
+    }).join('');
+
+    const barras = eventosSemana.filter(ev=>ev.lane<MAX_LANES_CAL).map(ev=>{
+      const startIdx = Math.max(0, diffDiasCal(ev.ini, weekStart));
+      const endIdx = Math.min(6, diffDiasCal(ev.fin, weekStart));
+      const left = (startIdx/7*100).toFixed(4);
+      const width = ((endIdx-startIdx+1)/7*100).toFixed(4);
+      const top = dayNumH + 3 + ev.lane*(barH+barGap);
+      const nombre = ev.r.empleado || '';
+      const idx = registros.indexOf(ev.r);
+      return `<div class="cal-bar" style="left:${left}%;width:${width}%;top:${top}px;height:${barH}px;font-size:${barFont}px" title="${esc(nombre)} · ${esc(ev.r.desde)} a ${esc(ev.r.hasta)}" data-idx="${idx}">${esc(nombre)}</div>`;
+    }).join('');
+
+    return `<div class="cal-week" style="height:${rowH}px">
+      <div class="cal-days">${dias}</div>
+      <div class="cal-bars">${barras}</div>
+    </div>`;
+  }).join('');
+
+  body.querySelectorAll('.cal-bar').forEach(el=>{
+    el.addEventListener('click', ()=>{
+      const idx=Number(el.getAttribute('data-idx'));
+      const r=registros[idx];
+      if(r) abrirRegistro(r);
     });
   });
 }
-function toggleSectorMenu(){
-  document.getElementById('sectorMenu').classList.toggle('open');
+function moverCalendario(delta){
+  if(calAno==null){ const h=new Date(); calAno=h.getFullYear(); calMes=h.getMonth(); }
+  calMes+=delta;
+  if(calMes<0){ calMes=11; calAno--; }
+  else if(calMes>11){ calMes=0; calAno++; }
+  pintarCalendario();
 }
+function irAHoyCalendario(){
+  const h=new Date(); calAno=h.getFullYear(); calMes=h.getMonth();
+  pintarCalendario();
+}
+document.getElementById('vacCalPrev').onclick = ()=>moverCalendario(-1);
+document.getElementById('vacCalNext').onclick = ()=>moverCalendario(1);
+document.getElementById('vacCalHoy').onclick = irAHoyCalendario;
+pintarCalendario();
 function celdaPeriodo(emp, p){
   const raw = emp.raw && emp.raw[p];
   if(raw==='***') return `<td class="c-num zero">—</td>`;
@@ -1464,6 +1574,12 @@ function filasControlHtml(arr){
     </tr>`;
   }).join('');
 }
+function cmpLegajoNum(a,b){
+  const na=parseInt(String(a.legajo).replace(/\D+/g,''),10);
+  const nb=parseInt(String(b.legajo).replace(/\D+/g,''),10);
+  if(!isNaN(na) && !isNaN(nb) && na!==nb) return na-nb;
+  return String(a.legajo).localeCompare(String(b.legajo),'es',{numeric:true});
+}
 function pintarControl(){
   const cont=document.getElementById('ctrlTablas');
   if(!cont) return;
@@ -1471,11 +1587,10 @@ function pintarControl(){
   const filtra=e=>{
     const okq=matchesCtrlQuery(e,q);
     const okp=filtroPeriodo===null || ((e.saldos&&e.saldos[filtroPeriodo])||0)>0;
-    const oks=filtroSector===null || (e.puesto||'').trim()===filtroSector;
-    return okq && okp && oks;
+    return okq && okp;
   };
-  const principal=empleadosHub.filter(e=>!esOtraSociedad(e) && filtra(e));
-  const otra=empleadosHub.filter(e=>esOtraSociedad(e) && filtra(e));
+  const principal=empleadosHub.filter(e=>!esOtraSociedad(e) && filtra(e)).sort(cmpLegajoNum);
+  const otra=empleadosHub.filter(e=>esOtraSociedad(e) && filtra(e)).sort(cmpLegajoNum);
   const head=`<thead><tr>
     <th style="width:52px">Legajo</th>
     <th class="th-emp">Empleado</th>
@@ -1505,7 +1620,6 @@ function pintarControl(){
       }
     });
   });
-  renderSectorMenu();
 }
 
 function pintarRegistros(){
@@ -1610,7 +1724,7 @@ async function cargarHub(){
         puesto: s.puesto||(emp?emp.puesto:''),
         desde: fmtFechaDesdeISO(s.fecha_inicio), hasta: fmtFechaDesdeISO(s.fecha_fin),
         dias:String(s.dias), periodo:String(s.periodo), estado:s.estado, pend:'0',
-        empleado_id:s.empleado_id, _fi:s.fecha_inicio
+        empleado_id:s.empleado_id, _fi:s.fecha_inicio, _hi:s.fecha_inicio, _hf:s.fecha_fin
       };
     });
     const registrosHist = hist.map(h=>{
@@ -1620,12 +1734,13 @@ async function cargarHub(){
         puesto: emp?emp.puesto:'',
         desde: fmtFechaDesdeISO(h.fecha_inicio), hasta: fmtFechaDesdeISO(h.fecha_fin),
         dias:String(h.dias), periodo:String(h.periodo), estado: MARCA_HIST_LABEL[h.marca]||h.marca, pend:'0',
-        empleado_id: emp?emp.id:null, _fi:h.fecha_inicio
+        empleado_id: emp?emp.id:null, _fi:h.fecha_inicio, _hi:h.fecha_inicio, _hf:h.fecha_fin
       };
     });
     registros = [...registrosApp, ...registrosHist].sort((a,b)=> a._fi < b._fi ? 1 : -1);
     pintarRegistros();
     pintarControl();
+    pintarCalendario();
     setHubMsg(`${registros.length} registros cargados`,'ok');
     preseleccionarDesdeURL();
   }catch(err){
@@ -1661,16 +1776,11 @@ function iniciar(){
     return;
   }
   cargarHub();
-  // cerrar sugerencias / menú sector al click afuera
+  // cerrar sugerencias al click afuera
   document.addEventListener('click', (ev)=>{
     const row=document.querySelector('.search-row');
     if(row && !row.contains(ev.target)){
       document.getElementById('empSuggest').classList.remove('open');
-    }
-    const sw=document.querySelector('.sector-wrap');
-    if(sw && !sw.contains(ev.target)){
-      const menu=document.getElementById('sectorMenu');
-      if(menu) menu.classList.remove('open');
     }
   });
 }

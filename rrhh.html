@@ -153,6 +153,8 @@
     border-radius:10px;margin-bottom:12px;}
   .gate-card .err{color:#b52a2a;font-size:13px;min-height:1.2em;margin-bottom:8px;}
   .gate-card .btn{width:100%;text-align:center;}
+  .gate-tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .gate-tabs .btn{width:auto;flex:1;padding:8px 6px;font-size:11px;}
 
   /* Hub unificado: registro (2/3) + control (1/3) */
   .hub{
@@ -375,13 +377,24 @@
     <img src="/logo-servinorte.jfif" alt="Servinorte">
     <h1>RRHH · Formulario PDF</h1>
     <p>Versión <b>v2026-08-21</b> · Panel unificado vacaciones</p>
+    <div class="gate-tabs">
+      <button type="button" class="btn solid" id="tabMagic">Link mágico</button>
+      <button type="button" class="btn" id="tabPassword">Usuario y contraseña</button>
+    </div>
     <p id="gateMsg">Ingresá tu correo. Te mandamos un link de acceso, sin contraseña.</p>
     <form id="gateEmailForm" autocomplete="on">
       <label for="gateEmail">Correo</label>
       <input id="gateEmail" name="email" type="email" placeholder="nombre@empresa.com" required autocomplete="email">
-      <div class="err" id="gateErr"></div>
       <button class="btn solid" type="submit" id="gateBtn">Enviar link de acceso</button>
     </form>
+    <form id="gatePasswordForm" autocomplete="on" hidden>
+      <label for="gateUser">Correo</label>
+      <input id="gateUser" name="email" type="email" placeholder="nombre@empresa.com" required autocomplete="email">
+      <label for="gatePass">Contraseña</label>
+      <input id="gatePass" name="password" type="password" placeholder="Contraseña" required autocomplete="current-password">
+      <button class="btn solid" type="submit" id="gateBtnPass">Entrar</button>
+    </form>
+    <div class="err" id="gateErr"></div>
   </div>
   <div class="gate-card" id="gatePanelDenegado" hidden>
     <img src="/logo-servinorte.jfif" alt="Servinorte">
@@ -553,9 +566,35 @@ function desbloquear(acceso){
 
 function setupGate(){
   const form = document.getElementById('gateEmailForm');
+  const passForm = document.getElementById('gatePasswordForm');
   const err = document.getElementById('gateErr');
   const btn = document.getElementById('gateBtn');
+  const btnPass = document.getElementById('gateBtnPass');
   const msg = document.getElementById('gateMsg');
+  const tabMagic = document.getElementById('tabMagic');
+  const tabPassword = document.getElementById('tabPassword');
+
+  const MSG_MAGIC = 'Ingresá tu correo. Te mandamos un link de acceso, sin contraseña.';
+  const MSG_PASS = 'Ingresá el usuario y la contraseña que te dio RRHH.';
+
+  function mostrarTabMagic(){
+    tabMagic.classList.add('solid');
+    tabPassword.classList.remove('solid');
+    form.hidden = false;
+    passForm.hidden = true;
+    msg.textContent = MSG_MAGIC;
+    err.textContent = '';
+  }
+  function mostrarTabPassword(){
+    tabPassword.classList.add('solid');
+    tabMagic.classList.remove('solid');
+    form.hidden = true;
+    passForm.hidden = false;
+    msg.textContent = MSG_PASS;
+    err.textContent = '';
+  }
+  tabMagic.addEventListener('click', mostrarTabMagic);
+  tabPassword.addEventListener('click', mostrarTabPassword);
 
   form.addEventListener('submit', async (ev)=>{
     ev.preventDefault();
@@ -571,6 +610,21 @@ function setupGate(){
     }
     msg.textContent = `Te mandamos un link a ${email}. Abrilo desde este mismo dispositivo para entrar.`;
     document.getElementById('gateEmail').value = '';
+  });
+
+  passForm.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const email = (document.getElementById('gateUser').value || '').trim();
+    const password = document.getElementById('gatePass').value || '';
+    if(!email || !password) return;
+    btnPass.disabled = true;
+    err.textContent = '';
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    btnPass.disabled = false;
+    if(error){
+      err.textContent = 'No se pudo entrar: ' + (error.message || error);
+    }
+    // Si no hubo error, onAuthStateChange (SIGNED_IN) se encarga de desbloquear.
   });
 
   document.getElementById('btnCerrarGate').addEventListener('click', async ()=>{

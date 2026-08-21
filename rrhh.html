@@ -371,16 +371,24 @@
 <body>
 
 <div class="gate" id="gate">
-  <form class="gate-card" id="gateForm" autocomplete="on">
+  <div class="gate-card" id="gatePanelLogin">
     <img src="/logo-servinorte.jfif" alt="Servinorte">
     <h1>RRHH · Formulario PDF</h1>
-    <p>Versión <b>v2026-08-10h</b> · Panel unificado vacaciones</p>
-    <p>Ingresá la clave para el panel central: registro y control de vacaciones.</p>
-    <label for="clave">Clave de acceso</label>
-    <input id="clave" name="password" type="password" placeholder="Clave RRHH" required>
-    <div class="err" id="gateErr"></div>
-    <button class="btn solid" type="submit">Entrar a RRHH</button>
-  </form>
+    <p>Versión <b>v2026-08-21</b> · Panel unificado vacaciones</p>
+    <p id="gateMsg">Ingresá tu correo. Te mandamos un link de acceso, sin contraseña.</p>
+    <form id="gateEmailForm" autocomplete="on">
+      <label for="gateEmail">Correo</label>
+      <input id="gateEmail" name="email" type="email" placeholder="nombre@empresa.com" required autocomplete="email">
+      <div class="err" id="gateErr"></div>
+      <button class="btn solid" type="submit" id="gateBtn">Enviar link de acceso</button>
+    </form>
+  </div>
+  <div class="gate-card" id="gatePanelDenegado" hidden>
+    <img src="/logo-servinorte.jfif" alt="Servinorte">
+    <h1>Sin acceso</h1>
+    <p>La cuenta <b id="gateDenegadoEmail"></b> no tiene acceso a este panel. Pedile a RRHH que te habilite como encargado de área.</p>
+    <button class="btn solid" type="button" id="btnCerrarGate">Probar con otro correo</button>
+  </div>
 </div>
 
 <div class="app-shell" id="appShell" hidden>
@@ -494,35 +502,6 @@
 
 <script>
 
-const RRHH_CLAVE = "ServinorteRRHH2026";
-const RRHH_KEY = "servinorte_rrhh_ok";
-
-function desbloquearRRHH(){
-  document.getElementById('gate').hidden = true;
-  document.getElementById('appShell').hidden = false;
-  iniciar();
-}
-
-function setupGate(){
-  const form = document.getElementById('gateForm');
-  const err = document.getElementById('gateErr');
-  if(sessionStorage.getItem(RRHH_KEY) === '1'){
-    desbloquearRRHH();
-    return;
-  }
-  form.addEventListener('submit', (ev)=>{
-    ev.preventDefault();
-    const v = (document.getElementById('clave').value || '').trim();
-    if(v === RRHH_CLAVE){
-      sessionStorage.setItem(RRHH_KEY, '1');
-      err.textContent = '';
-      desbloquearRRHH();
-    } else {
-      err.textContent = 'Clave incorrecta. Probá de nuevo.';
-    }
-  });
-}
-
 const CONFIG = {
   ciudad: "Ciudad de Salta",
   supabaseUrl: "https://uazrrmdngvlwgppdsasc.supabase.co",
@@ -530,6 +509,90 @@ const CONFIG = {
 };
 
 const sb = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonKey);
+
+/* ===== Login por correo (link mágico) + resolución de rol =====
+   Reemplaza la clave estática compartida: ahora cada persona entra con su
+   propia cuenta y ve solo lo que le corresponde (RRHH/vacaciones_admin ven
+   todo, un encargado de área ve solo su gente vía RLS). */
+let miAcceso = null; // { modo: 'total' | 'encargado' } una vez resuelto
+
+async function resolverAcceso(user){
+  try{
+    const [{ data: esRrhh }, { data: esVacAdmin }] = await Promise.all([
+      sb.rpc('has_role', { _user_id: user.id, _role: 'rrhh' }),
+      sb.rpc('has_role', { _user_id: user.id, _role: 'vacaciones_admin' }),
+    ]);
+    if(esRrhh || esVacAdmin) return { modo: 'total' };
+    const { data: propios } = await sb.from('empleados_area_encargado').select('area_id').limit(1);
+    if(propios && propios.length) return { modo: 'encargado' };
+  }catch(e){ /* sin acceso */ }
+  return null;
+}
+
+function mostrarGateLogin(){
+  document.getElementById('gate').hidden = false;
+  document.getElementById('appShell').hidden = true;
+  document.getElementById('gatePanelLogin').hidden = false;
+  document.getElementById('gatePanelDenegado').hidden = true;
+}
+
+function mostrarGateDenegado(email){
+  document.getElementById('gate').hidden = false;
+  document.getElementById('appShell').hidden = true;
+  document.getElementById('gatePanelLogin').hidden = true;
+  document.getElementById('gatePanelDenegado').hidden = false;
+  document.getElementById('gateDenegadoEmail').textContent = email || '';
+}
+
+function desbloquear(acceso){
+  miAcceso = acceso;
+  document.getElementById('gate').hidden = true;
+  document.getElementById('appShell').hidden = false;
+  iniciar();
+}
+
+function setupGate(){
+  const form = document.getElementById('gateEmailForm');
+  const err = document.getElementById('gateErr');
+  const btn = document.getElementById('gateBtn');
+  const msg = document.getElementById('gateMsg');
+
+  form.addEventListener('submit', async (ev)=>{
+    ev.preventDefault();
+    const email = (document.getElementById('gateEmail').value || '').trim();
+    if(!email) return;
+    btn.disabled = true;
+    err.textContent = '';
+    const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.href } });
+    btn.disabled = false;
+    if(error){
+      err.textContent = 'No se pudo enviar el link: ' + (error.message || error);
+      return;
+    }
+    msg.textContent = `Te mandamos un link a ${email}. Abrilo desde este mismo dispositivo para entrar.`;
+    document.getElementById('gateEmail').value = '';
+  });
+
+  document.getElementById('btnCerrarGate').addEventListener('click', async ()=>{
+    await sb.auth.signOut();
+  });
+
+  sb.auth.onAuthStateChange(async (event, session)=>{
+    if(event === 'SIGNED_OUT'){
+      miAcceso = null;
+      mostrarGateLogin();
+      return;
+    }
+    if(session && session.user){
+      if(miAcceso) return; // ya resuelto, no re-evaluar en cada refresh de token
+      const acceso = await resolverAcceso(session.user);
+      if(acceso) desbloquear(acceso);
+      else mostrarGateDenegado(session.user.email);
+    } else if(event === 'INITIAL_SESSION'){
+      mostrarGateLogin();
+    }
+  });
+}
 
 /* ===== Cálculo de vacaciones · Ley 20.744 (idéntico a lib/vacaciones-calculo.ts de la intranet) ===== */
 function parseFechaISO(v){
@@ -1434,8 +1497,11 @@ async function cargarHub(){
   const list=document.getElementById('regList');
   list.innerHTML=`<div class="hub-msg">Cargando…</div>`;
   try{
+    // Encargado de área: la vista ya viene filtrada a su gente por RLS
+    // (is_area_encargado). RRHH/vacaciones_admin siguen viendo a todos.
+    const tablaEmpleados = miAcceso && miAcceso.modo === 'encargado' ? 'empleados_area_encargado' : 'vac_empleados_publico';
     const [empRes, saldoRes, solRes, histRes] = await Promise.all([
-      sb.from('vac_empleados_publico').select('*').eq('activo', true).order('nombre'),
+      sb.from(tablaEmpleados).select('*').eq('activo', true).order('nombre'),
       sb.from('vac_saldos').select('*'),
       sb.from('vac_solicitudes').select('*').order('fecha_inicio', {ascending:false}),
       sb.from('vac_hist_solicitudes').select('*').order('fecha_inicio', {ascending:false})

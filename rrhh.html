@@ -155,6 +155,7 @@
   .gate-card .btn{width:100%;text-align:center;}
   .gate-tabs{display:flex;gap:8px;margin-bottom:14px;}
   .gate-tabs .btn{width:auto;flex:1;padding:8px 6px;font-size:11px;}
+  #btnLogout{position:fixed;top:10px;right:10px;z-index:200;padding:7px 12px;font-size:11px;background:#fff;}
 
   /* Hub unificado: registro (2/3) + control (1/3) */
   .hub{
@@ -406,6 +407,8 @@
 
 <div class="app-shell" id="appShell" hidden>
 
+<button type="button" class="btn no-print" id="btnLogout" title="Cerrar sesión">Cerrar sesión</button>
+
 <div class="hub no-print" id="hub">
   <div class="hub-split">
 
@@ -628,6 +631,10 @@ function setupGate(){
   });
 
   document.getElementById('btnCerrarGate').addEventListener('click', async ()=>{
+    await sb.auth.signOut();
+  });
+
+  document.getElementById('btnLogout').addEventListener('click', async ()=>{
     await sb.auth.signOut();
   });
 

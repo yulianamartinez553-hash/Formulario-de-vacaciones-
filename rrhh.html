@@ -277,8 +277,13 @@
     background:rgba(31,61,129,.10);padding:5px 7px;border-radius:6px;white-space:nowrap;
   }
 
-  /* Panel control (derecha) */
-  .pane-ctrl{position:sticky;top:10px;max-height:calc(100vh - 20px);display:flex;flex-direction:column;overflow:hidden;}
+  /* Columna derecha: calendario (solo) + control de vacaciones, pegados juntos */
+  .col-ctrl{
+    position:sticky;top:10px;max-height:calc(100vh - 20px);min-width:0;
+    display:flex;flex-direction:column;gap:14px;
+  }
+  .pane-cal{flex:none;}
+  .pane-ctrl{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
   #ctrlTablas{flex:1;min-height:0;overflow:auto;}
   .ctrl-search{
     width:100%;font:inherit;font-size:14px;padding:10px 12px;border:1.5px solid #d5dbe8;
@@ -300,11 +305,14 @@
   }
   .chip-sq:last-child{border-right:none;}
   .chip-sq.on{background:var(--azul-servinorte);color:#fff;}
-  .vac-cal{margin:2px 0 12px;flex:none;}
   .vac-cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
-  .vac-cal-title{font-family:'Oswald',sans-serif;font-size:14px;letter-spacing:.5px;text-transform:uppercase;color:var(--azul-servinorte);}
-  .vac-cal-nav{display:flex;gap:5px;}
-  .vac-cal-nav .btn{padding:4px 9px;font-size:10px;width:auto;}
+  .vac-cal-title{font-family:'Oswald',sans-serif;font-size:15px;letter-spacing:.5px;text-transform:uppercase;color:var(--azul-servinorte);}
+  .vac-cal-nav{display:flex;gap:2px;}
+  .cal-arrow{
+    border:none;background:transparent;color:var(--azul-servinorte);cursor:pointer;
+    font-size:18px;line-height:1;padding:2px 8px;font-family:'Oswald',sans-serif;
+  }
+  .cal-arrow:hover{color:#000;}
   .vac-cal-dow{display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:2px;}
   .vac-cal-dow div{font-family:'Barlow',sans-serif;font-size:9.5px;text-transform:uppercase;color:#8a93a6;text-align:center;padding:2px 0;}
   .cal-week{position:relative;margin-bottom:2px;}
@@ -312,12 +320,12 @@
   .cal-day{border:1px solid #e7eaf2;background:#fff;padding:2px 3px;position:relative;box-sizing:border-box;}
   .cal-day.empty{background:#fafbfd;border-color:#f1f3f8;}
   .cal-day.today{border-color:var(--azul-servinorte);border-width:1.5px;}
-  .cal-daynum{font-family:'Barlow',sans-serif;font-size:9.5px;color:#8a93a6;}
+  .cal-daynum{font-family:'Barlow',sans-serif;font-size:9.5px;line-height:1;display:block;color:#8a93a6;position:relative;z-index:1;}
   .cal-day.today .cal-daynum{color:var(--azul-servinorte);font-weight:700;}
   .cal-extra{position:absolute;bottom:1px;right:3px;font-size:8.5px;color:#8a93a6;font-family:'Barlow',sans-serif;}
   .cal-bars{position:absolute;inset:0;pointer-events:none;}
   .cal-bar{
-    position:absolute;border-radius:3px;background:#0d1f4a;color:#fff;
+    position:absolute;border-radius:3px;background:var(--azul-servinorte);color:#fff;
     font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:.2px;
     display:flex;align-items:center;padding:0 6px;overflow:hidden;
     white-space:nowrap;text-overflow:ellipsis;pointer-events:auto;cursor:pointer;box-sizing:border-box;
@@ -359,7 +367,8 @@
   .form-view[hidden], .hub[hidden]{display:none!important;}
   @media (max-width:960px){
     .hub-split{grid-template-columns:1fr;}
-    .pane-ctrl{position:relative;top:auto;max-height:none;}
+    .col-ctrl{position:relative;top:auto;max-height:none;}
+    .pane-ctrl{max-height:none;}
     .ctrl-table-wrap{max-height:55vh;}
   }
   @media (max-width:640px){
@@ -479,37 +488,39 @@
       </div>
     </section>
 
-    <section class="pane pane-ctrl" aria-label="Control de vacaciones">
-      <h2>Control de vacaciones</h2>
-      <input id="ctrlQ" class="ctrl-search" type="search" placeholder="Buscar por nombre, apellido o legajo…" oninput="pintarControl()" autocomplete="off">
-      <div class="ctrl-filtros">
-        <div class="row-f">
-          <span class="lbl">Pendiente</span>
-          <div class="chip-group" role="group" aria-label="Filtro pendiente">
-            <button type="button" class="chip-sq" id="chip-2024" onclick="setFiltroPeriodo(2024)">2024</button>
-            <button type="button" class="chip-sq" id="chip-2025" onclick="setFiltroPeriodo(2025)">2025</button>
-            <button type="button" class="chip-sq" id="chip-2026" onclick="setFiltroPeriodo(2026)">2026</button>
-          </div>
-        </div>
-      </div>
+    <div class="col-ctrl">
 
-      <div class="vac-cal" id="vacCal">
+      <section class="pane pane-cal" aria-label="Calendario de vacaciones">
         <div class="vac-cal-head">
           <div class="vac-cal-title" id="vacCalTitle">—</div>
           <div class="vac-cal-nav">
-            <button type="button" class="btn" id="vacCalPrev" aria-label="Mes anterior">‹</button>
-            <button type="button" class="btn" id="vacCalHoy">Hoy</button>
-            <button type="button" class="btn" id="vacCalNext" aria-label="Mes siguiente">›</button>
+            <button type="button" class="cal-arrow" id="vacCalPrev" aria-label="Mes anterior">‹</button>
+            <button type="button" class="cal-arrow" id="vacCalNext" aria-label="Mes siguiente">›</button>
           </div>
         </div>
         <div class="vac-cal-dow">
           <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
         </div>
         <div id="vacCalBody"></div>
-      </div>
+      </section>
 
-      <div id="ctrlTablas"></div>
-    </section>
+      <section class="pane pane-ctrl" aria-label="Control de vacaciones">
+        <h2>Control de vacaciones</h2>
+        <input id="ctrlQ" class="ctrl-search" type="search" placeholder="Buscar por nombre, apellido o legajo…" oninput="pintarControl()" autocomplete="off">
+        <div class="ctrl-filtros">
+          <div class="row-f">
+            <span class="lbl">Pendiente</span>
+            <div class="chip-group" role="group" aria-label="Filtro pendiente">
+              <button type="button" class="chip-sq" id="chip-2024" onclick="setFiltroPeriodo(2024)">2024</button>
+              <button type="button" class="chip-sq" id="chip-2025" onclick="setFiltroPeriodo(2025)">2025</button>
+              <button type="button" class="chip-sq" id="chip-2026" onclick="setFiltroPeriodo(2026)">2026</button>
+            </div>
+          </div>
+        </div>
+        <div id="ctrlTablas"></div>
+      </section>
+
+    </div>
 
   </div>
 </div>
@@ -1499,9 +1510,10 @@ function pintarCalendario(){
   const barH = lanesVisibles<=1 ? 21 : 15;
   const barFont = lanesVisibles<=1 ? 12.5 : 10;
   const barGap = 2;
-  const dayNumH = 13;
+  const dayNumH = 16;
+  const padTop = 5;
   const necesitaExtra = eventos.some(ev=>ev.lane>=MAX_LANES_CAL);
-  const rowH = dayNumH + 3 + (lanesVisibles>0 ? lanesVisibles*barH + Math.max(0,lanesVisibles-1)*barGap : 0) + (necesitaExtra?11:3);
+  const rowH = dayNumH + padTop + (lanesVisibles>0 ? lanesVisibles*barH + Math.max(0,lanesVisibles-1)*barGap : 0) + (necesitaExtra?11:3);
 
   body.innerHTML = semanas.map(semana=>{
     const weekStart=semana[0].date, weekEnd=semana[6].date;
@@ -1522,7 +1534,7 @@ function pintarCalendario(){
       const endIdx = Math.min(6, diffDiasCal(ev.fin, weekStart));
       const left = (startIdx/7*100).toFixed(4);
       const width = ((endIdx-startIdx+1)/7*100).toFixed(4);
-      const top = dayNumH + 3 + ev.lane*(barH+barGap);
+      const top = dayNumH + padTop + ev.lane*(barH+barGap);
       const nombre = ev.r.empleado || '';
       const idx = registros.indexOf(ev.r);
       return `<div class="cal-bar" style="left:${left}%;width:${width}%;top:${top}px;height:${barH}px;font-size:${barFont}px" title="${esc(nombre)} · ${esc(ev.r.desde)} a ${esc(ev.r.hasta)}" data-idx="${idx}">${esc(nombre)}</div>`;
@@ -1549,13 +1561,8 @@ function moverCalendario(delta){
   else if(calMes>11){ calMes=0; calAno++; }
   pintarCalendario();
 }
-function irAHoyCalendario(){
-  const h=new Date(); calAno=h.getFullYear(); calMes=h.getMonth();
-  pintarCalendario();
-}
 document.getElementById('vacCalPrev').onclick = ()=>moverCalendario(-1);
 document.getElementById('vacCalNext').onclick = ()=>moverCalendario(1);
-document.getElementById('vacCalHoy').onclick = irAHoyCalendario;
 pintarCalendario();
 function celdaPeriodo(emp, p){
   const raw = emp.raw && emp.raw[p];

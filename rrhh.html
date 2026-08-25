@@ -796,8 +796,10 @@ function proximoInicioValido(iso){
 const PERIODOS_HOJA = [2023, 2024, 2025, 2026];
 /* Períodos usados para asignar vacaciones / filtros pendiente */
 const PERIODOS = [2024, 2025, 2026];
-/* Columnas de períodos en la tabla de control (encabezados fijos) */
-const PERIODOS_TABLA = [2024, 2025, 2026];
+/* Columnas de períodos en la tabla de control (encabezados fijos) — mismos
+   4 períodos que el "Control de vacaciones por período" de la intranet
+   (2023-2026), ni más ni menos. */
+const PERIODOS_TABLA = [2023, 2024, 2025, 2026];
 
 const OTRA_SOCIEDAD = new Set([
   "VELARDE MAURO GASTON",

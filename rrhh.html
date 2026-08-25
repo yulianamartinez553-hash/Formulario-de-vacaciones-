@@ -692,6 +692,21 @@ const MS_DIA_CALC=86400000;
 /** Irma Cintia Peloc: no tiene vacaciones reales cargadas; no descontar tomados fantasma. */
 const EMPLEADOS_SIN_VACACIONES_CARGADAS = new Set(['155']);
 /**
+ * Correcciones puntuales de CONTROL (empleado_id → período → campos).
+ * Merida SA-4: 2023 tenía corr=2 / tomados=1 → 1 pendiente fantasma;
+ * solo gozó 1 día (hist/planilla), el pendiente debe ser 0.
+ */
+const AJUSTES_SALDO_FORZADOS = {
+  '968bfa7e-9ecc-4a55-b5a1-dd978e6f6942': {
+    2023: { dias_correspondientes: 1, dias_tomados_previos: 1 }
+  }
+};
+function aplicarAjustesSaldo(saldos){
+  return (saldos||[]).map(s=>{
+    const aj = AJUSTES_SALDO_FORZADOS[s.empleado_id] && AJUSTES_SALDO_FORZADOS[s.empleado_id][s.periodo];
+    return aj ? {...s, ...aj} : s;
+  });
+}/**
  * Proporcionales según regla previa del sistema (no Ignacio online):
  * referencia hoy si el período está en curso; ≥ ~6 meses → escala;
  * si no → round(días/20) con mínimo 1.
@@ -1691,6 +1706,23 @@ async function limpiarVacacionesPelocEnDB(){
   }
 }
 
+/** Persiste ajustes puntuales (p.ej. Merida 2023) si RLS lo permite. */
+async function persistirAjustesSaldoEnDB(){
+  try{
+    for(const [empId, porPeriodo] of Object.entries(AJUSTES_SALDO_FORZADOS)){
+      for(const [periodo, campos] of Object.entries(porPeriodo)){
+        await sb.from('vac_saldos')
+          .update({ ...campos, updated_at:new Date().toISOString() })
+          .eq('empleado_id', empId)
+          .eq('periodo', Number(periodo));
+      }
+    }
+    return true;
+  }catch(_e){
+    return false;
+  }
+}
+
 async function cargarHub(){
   setHubMsg('Cargando empleados y saldos…','');
   const list=document.getElementById('regList');
@@ -1710,15 +1742,16 @@ async function cargarHub(){
     if(solRes.error) throw solRes.error;
     if(histRes.error) throw histRes.error;
 
-    // Peloc no tiene períodos reales: limpiar tomados fantasma si hay sesión RRHH
+    // Correcciones DB (Peloc tomados fantasma, Merida 2023, …) si hay sesión RRHH
     if(miAcceso && miAcceso.modo==='total'){
       await limpiarVacacionesPelocEnDB();
+      await persistirAjustesSaldoEnDB();
       const saldoRes2 = await sb.from('vac_saldos').select('*');
       if(!saldoRes2.error && saldoRes2.data) saldoRes.data = saldoRes2.data;
     }
 
     const emps=empRes.data||[];
-    let saldos=saldoRes.data||[];
+    let saldos=aplicarAjustesSaldo(saldoRes.data||[]);
     const sols=solRes.data||[];
     const hist=histRes.data||[];
     const hoy=new Date();

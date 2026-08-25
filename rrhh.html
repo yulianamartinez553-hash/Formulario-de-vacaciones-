@@ -517,6 +517,8 @@
               <button type="button" class="chip-sq" id="chip-2026" onclick="setFiltroPeriodo(2026)">2026</button>
             </div>
           </div>
+          <button type="button" class="btn" id="btnFixLCT" onclick="corregirProporcionalesLCT()" title="Recalcula con LCT Art.150/151 (Ignacio online) y actualiza saldos en Supabase si tenés permiso">Corregir proporcionales LCT</button>
+          <div class="hub-msg" id="ctrlFixMsg"></div>
         </div>
         <div id="ctrlTablas"></div>
       </section>
@@ -671,31 +673,53 @@ function diasPorAntiguedad(anios){
   if(anios<20) return 28;
   return 35;
 }
-function diasCorrespondientes(fechaAltaISO, periodo, hoy){
+const MS_DIA_CALC=86400000;
+/** Días hábiles (lun–vie) inclusive entre dos fechas locales. */
+function diasHabilesEntre(a, b){
+  let n=0;
+  const d=new Date(a.getFullYear(), a.getMonth(), a.getDate());
+  const end=new Date(b.getFullYear(), b.getMonth(), b.getDate());
+  while(d.getTime()<=end.getTime()){
+    const wd=d.getDay();
+    if(wd!==0 && wd!==6) n++;
+    d.setDate(d.getDate()+1);
+  }
+  return n;
+}
+/**
+ * Días de vacaciones LCT Art. 150/151 (calculadora Ignacio online).
+ * Antigüedad al 31/12 del período. Si trabajó ≥ mitad de los días hábiles
+ * del año → escala completa; si no → 1 día por cada 20 corridos (floor).
+ * Ref: https://www.ignacioonline.com.ar/calculadora-dia-de-vacaciones/
+ */
+function diasCorrespondientes(fechaAltaISO, periodo, _hoy){
   const alta=parseFechaISO(fechaAltaISO);
   if(!alta) return 0;
-  const enCurso = periodo >= hoy.getFullYear();
-  const ref = enCurso ? hoy : new Date(periodo,11,31);
-  if(alta.getTime()>ref.getTime()) return 0;
-  const inicioPeriodo=new Date(periodo,0,1);
-  const start = alta.getTime()>inicioPeriodo.getTime() ? alta : inicioPeriodo;
-  const diasTrabajados=Math.floor((ref.getTime()-start.getTime())/MS_DIA_CALC)+1;
-  const mesesTrabajados=diasTrabajados/30.44;
-  const escala=diasPorAntiguedad(aniosCompletos(alta,ref));
-  if(mesesTrabajados>=6) return escala;
-  return Math.max(1, Math.round(diasTrabajados/20));
+  const asOf=new Date(periodo,11,31);
+  if(alta.getTime()>asOf.getTime()) return 0;
+  const yearStart=new Date(periodo,0,1);
+  const from = alta.getTime()>yearStart.getTime() ? alta : yearStart;
+  const habYear=diasHabilesEntre(yearStart, asOf);
+  const habTrab=diasHabilesEntre(from, asOf);
+  const calTrab=Math.floor((asOf.getTime()-from.getTime())/MS_DIA_CALC)+1;
+  if(habTrab < habYear/2) return Math.floor(calTrab/20);
+  return diasPorAntiguedad(aniosCompletos(alta, asOf));
 }
-const MS_DIA_CALC=86400000;
-/** Saldo restante por período para un empleado, combinando saldo guardado + solicitudes vivas. */
+/** Saldo restante por período: correspondientes siempre LCT; tomados DB + app. */
 function saldoPorPeriodo(fechaAltaISO, periodos, saldosEmp, solicitudesEmp, hoy){
   const mapa=new Map(saldosEmp.map(s=>[s.periodo,s]));
   return periodos.map(p=>{
     const g=mapa.get(p);
-    const correspondientes = g ? g.dias_correspondientes : diasCorrespondientes(fechaAltaISO, p, hoy);
-    const tomadosPrevios = g ? (g.dias_tomados_previos||0) : 0;
+    const correspondientes = diasCorrespondientes(fechaAltaISO, p, hoy);
+    let tomadosPrevios = g ? (g.dias_tomados_previos||0) : 0;
     const consumidosApp = solicitudesEmp
       .filter(s=>s.periodo===p && s.estado!=='ANULADA' && s.origen!=='planilla')
       .reduce((a,s)=>a+Number(s.dias||0),0);
+    // Saldos viejos con proporcional incorrecto (p.ej. 6 en vez de 14) a veces
+    // traen dias_tomados_previos huérfanos sin historial: no restarlos al subir a LCT.
+    if(g && Number(g.dias_correspondientes||0) < correspondientes && tomadosPrevios>0 && !consumidosApp){
+      tomadosPrevios = 0;
+    }
     const restantes=Math.max(0, correspondientes-tomadosPrevios-consumidosApp);
     return {periodo:p, correspondientes, restantes};
   });
@@ -1644,6 +1668,96 @@ function abrirRegistro(r){
     render();
     setEstado(`Formulario · ${campos.nombre} · Pendientes ${campos.diasPendientes}.`,'ok');
   });
+}
+
+function setCtrlFixMsg(t, cls){
+  const el=document.getElementById('ctrlFixMsg');
+  if(!el) return;
+  el.textContent=t||'';
+  el.className='hub-msg'+(cls?(' '+cls):'');
+}
+
+/**
+ * Recalcula correspondientes LCT (Ignacio) para todos, prioriza ingresos post-enero
+ * del año en curso, intenta persistir en vac_saldos (requiere rol RRHH) y recarga.
+ */
+async function corregirProporcionalesLCT(){
+  const btn=document.getElementById('btnFixLCT');
+  if(btn) btn.disabled=true;
+  setCtrlFixMsg('Recalculando LCT (Ignacio online)…','');
+  try{
+    const hoy=new Date();
+    const anio=hoy.getFullYear();
+    const [empRes, saldoRes, solRes] = await Promise.all([
+      sb.from('vac_empleados_publico').select('id,legajo,nombre,fecha_alta,activo').eq('activo',true),
+      sb.from('vac_saldos').select('*'),
+      sb.from('vac_solicitudes').select('empleado_id,periodo,dias,estado,origen')
+    ]);
+    if(empRes.error) throw empRes.error;
+    if(saldoRes.error) throw saldoRes.error;
+    if(solRes.error) throw solRes.error;
+
+    const saldosByEmp={};
+    (saldoRes.data||[]).forEach(s=>{ (saldosByEmp[s.empleado_id] ||= []).push(s); });
+    const solsByEmp={};
+    (solRes.data||[]).forEach(s=>{ (solsByEmp[s.empleado_id] ||= []).push(s); });
+
+    const cambios=[];
+    const upserts=[];
+    for(const e of (empRes.data||[])){
+      const alta=parseFechaISO(e.fecha_alta);
+      if(!alta) continue;
+      for(const p of PERIODOS_HOJA){
+        if(alta.getFullYear()>p) continue;
+        const lct=diasCorrespondientes(e.fecha_alta, p, hoy);
+        const g=(saldosByEmp[e.id]||[]).find(s=>s.periodo===p);
+        const dbCorr=g ? Number(g.dias_correspondientes||0) : null;
+        const sols=(solsByEmp[e.id]||[]).filter(s=>s.periodo===p && s.estado!=='ANULADA' && s.origen!=='planilla');
+        const consumidosApp=sols.reduce((a,s)=>a+Number(s.dias||0),0);
+        let tomados=g ? Number(g.dias_tomados_previos||0) : 0;
+        if(g && dbCorr!=null && dbCorr < lct && tomados>0 && !consumidosApp) tomados=0;
+        const reciente = alta.getFullYear()>anio || (alta.getFullYear()===anio && alta.getMonth()>=1);
+        if(dbCorr!==lct || (g && Number(g.dias_tomados_previos||0)!==tomados)){
+          cambios.push({
+            legajo:e.legajo, nombre:e.nombre, periodo:p,
+            antes: dbCorr, despues:lct, tomados, reciente
+          });
+          upserts.push({
+            empleado_id:e.id, periodo:p,
+            dias_correspondientes:lct,
+            dias_tomados_previos:tomados,
+            updated_at:new Date().toISOString()
+          });
+        }
+      }
+    }
+
+    let persistidos=0, persistErr='';
+    if(upserts.length && miAcceso && miAcceso.modo==='total'){
+      const { data, error } = await sb.from('vac_saldos').upsert(upserts, { onConflict:'empleado_id,periodo' }).select('id');
+      if(error) persistErr=error.message||String(error);
+      else persistidos=(data||[]).length;
+    }
+
+    const recientes=cambios.filter(c=>c.reciente && c.periodo===anio);
+    const resumenRecientes = recientes.length
+      ? recientes.slice(0,12).map(c=>`${c.legajo} ${c.nombre}: ${c.antes==null?'—':c.antes}→${c.despues}`).join(' · ')
+      : 'sin desvíos en ingresos post-enero';
+
+    await cargarHub();
+
+    if(persistErr){
+      setCtrlFixMsg(`LCT aplicado en pantalla (${cambios.length} ajustes). No se pudo guardar en DB: ${persistErr}. ${resumenRecientes}`,'err');
+    }else if(persistidos){
+      setCtrlFixMsg(`LCT guardado: ${persistidos} saldos. Ingresos recientes ${anio}: ${resumenRecientes}`,'ok');
+    }else{
+      setCtrlFixMsg(`LCT en pantalla (${cambios.length} ajustes; DB sin escritura o ya coincidía). Ingresos recientes ${anio}: ${resumenRecientes}`,'ok');
+    }
+  }catch(err){
+    setCtrlFixMsg('Error al corregir: '+(err.message||err),'err');
+  }finally{
+    if(btn) btn.disabled=false;
+  }
 }
 
 async function cargarHub(){

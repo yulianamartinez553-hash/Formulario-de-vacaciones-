@@ -1378,7 +1378,7 @@ async function generarRegistroManual(){
       .from('vac_solicitudes').select('periodo,dias,estado,origen').eq('empleado_id', empSeleccionado.id);
     if(errSols) throw errSols;
     const spFresh = saldoPorPeriodo(
-      empSeleccionado.alta, [periodo], freshSaldos||[], freshSols||[], new Date(),
+      empSeleccionado.alta, [periodo], aplicarAjustesSaldo(freshSaldos||[]), freshSols||[], new Date(),
       {ignorarTomadosPrevios: EMPLEADOS_SIN_VACACIONES_CARGADAS.has(String(empSeleccionado.legajo))}
     );
     const saldoFresco = spFresh[0] ? spFresh[0].restantes : 0;

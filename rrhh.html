@@ -282,13 +282,12 @@
     position:sticky;top:10px;max-height:calc(100vh - 20px);min-width:0;
     display:flex;flex-direction:column;gap:14px;
   }
-  /* Tope de tamaño "normal" del calendario: si igual necesitara más lugar
-     (mes con varias semanas muy cargadas), scrollea adentro en vez de
-     empujar/tapar el panel de Control de abajo — que se queda con la
-     parte más grande de la columna. */
-  .pane-cal{flex:none;max-height:30vh;display:flex;flex-direction:column;}
-  #vacCalBody{flex:1;overflow-y:auto;min-height:0;}
-  .pane-ctrl{flex:1;min-height:380px;display:flex;flex-direction:column;overflow:hidden;}
+  /* El calendario mantiene su forma completa (6 semanas, sin recortar ni
+     scrollear) — las barras/franjas se achican (ver barH en pintarCalendario)
+     para que el mes entero entre cómodo sin necesitar un tope artificial. */
+  .pane-cal{flex:none;display:flex;flex-direction:column;padding:10px 12px 12px;}
+  #vacCalBody{flex:none;}
+  .pane-ctrl{flex:1;min-height:380px;display:flex;flex-direction:column;overflow:hidden;padding:10px 12px 12px;}
   #ctrlTablas{flex:1;min-height:0;overflow:auto;}
   .ctrl-search{
     width:100%;font:inherit;font-size:14px;padding:10px 12px;border:1.5px solid #d5dbe8;
@@ -337,40 +336,40 @@
   .cal-extra{position:absolute;bottom:1px;right:3px;font-size:8.5px;color:#8a93a6;font-family:'Barlow',sans-serif;}
   .cal-bars{position:absolute;inset:0;pointer-events:none;}
   .cal-bar{
-    position:absolute;border-radius:3px;background:var(--azul-servinorte);color:#fff;
-    font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:.2px;
-    display:flex;align-items:center;padding:0 6px;overflow:hidden;
+    position:absolute;border-radius:2px;background:var(--azul-servinorte);color:#fff;
+    font-family:'Oswald',sans-serif;font-weight:700;letter-spacing:.1px;
+    display:flex;align-items:center;padding:0 4px;overflow:hidden;
     white-space:nowrap;text-overflow:ellipsis;pointer-events:auto;cursor:pointer;box-sizing:border-box;
   }
   .cal-bar:hover{filter:brightness(1.15);}
   .ctrl-grupo{
-    font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:13px;text-transform:uppercase;
-    color:var(--azul-servinorte);margin:6px 0 8px;
+    font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:12px;text-transform:uppercase;
+    color:var(--azul-servinorte);margin:4px 0 5px;
   }
-  .ctrl-table-wrap{border-top:1px solid rgba(31,61,129,.18);margin-bottom:12px;}
+  .ctrl-table-wrap{border-top:1px solid rgba(31,61,129,.12);margin-bottom:6px;}
   .ctrl-table{width:100%;border-collapse:collapse;table-layout:fixed;}
   .ctrl-table thead th{
     position:sticky;top:0;z-index:2;background:#eef2f9;color:var(--azul-servinorte);
-    font-family:'Oswald',sans-serif;font-size:11px;letter-spacing:.6px;text-transform:uppercase;
-    font-weight:600;padding:8px 4px;text-align:center;border-bottom:1.5px solid var(--azul-servinorte);
+    font-family:'Oswald',sans-serif;font-size:10.5px;letter-spacing:.5px;text-transform:uppercase;
+    font-weight:600;padding:5px 4px;text-align:center;border-bottom:1.5px solid var(--azul-servinorte);
   }
   .ctrl-table thead th.th-emp{text-align:left;padding-left:6px;}
   .ctrl-table tbody td{
-    padding:8px 4px;vertical-align:middle;border-bottom:1px solid rgba(31,61,129,.35);
+    padding:4px 4px;vertical-align:middle;border-bottom:1px solid rgba(31,61,129,.2);
     background:transparent;
   }
   .ctrl-table tbody tr{cursor:pointer;}
   .ctrl-table tbody tr:hover td{background:rgba(31,61,129,.04);}
   .ctrl-table .c-leg{
-    font-family:'Oswald',sans-serif;font-size:16px;color:var(--azul-servinorte);
-    text-align:center;width:48px;
+    font-family:'Oswald',sans-serif;font-size:14px;color:var(--azul-servinorte);
+    text-align:center;width:44px;
   }
   .ctrl-table .c-emp{
-    font-size:12.5px;font-weight:600;color:#24355f;text-align:left;padding-left:6px;
-    word-break:break-word;line-height:1.25;
+    font-size:12px;font-weight:600;color:#24355f;text-align:left;padding-left:6px;
+    word-break:break-word;line-height:1.2;
   }
   .ctrl-table .c-num{
-    font-family:'Oswald',sans-serif;font-size:20px;font-weight:700;color:var(--azul-servinorte);
+    font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;color:var(--azul-servinorte);
     text-align:center;line-height:1;
   }
   .ctrl-table .c-num.zero{color:#b0b8c8;font-weight:600;font-size:18px;}
@@ -1525,9 +1524,11 @@ function pintarCalendario(){
   const eventos=asignarLanesCal(eventosDelMes(calAno, calMes));
   const hoy=new Date();
 
-  const barGap = 2;
-  const dayNumH = 16;
-  const padTop = 5;
+  // Franjas chicas, del tamaño del nombre que llevan adentro — así el mes
+  // completo (hasta 6 semanas) entra siempre sin recortarse ni scrollear.
+  const barGap = 1;
+  const dayNumH = 13;
+  const padTop = 2;
 
   body.innerHTML = semanas.map(semana=>{
     const weekStart=semana[0].date, weekEnd=semana[6].date;
@@ -1537,10 +1538,10 @@ function pintarCalendario(){
     // mes entero — una semana cargada ya no infla las otras 5.
     const maxLaneSemana = eventosSemana.reduce((m,ev)=>Math.max(m, ev.lane), -1);
     const lanesVisibles = Math.max(0, Math.min(MAX_LANES_CAL, maxLaneSemana+1));
-    const barH = lanesVisibles<=1 ? 21 : lanesVisibles===2 ? 17 : 14;
-    const barFont = lanesVisibles<=1 ? 12.5 : lanesVisibles===2 ? 10.5 : 9;
+    const barH = lanesVisibles<=1 ? 14 : lanesVisibles===2 ? 12 : 10;
+    const barFont = lanesVisibles<=1 ? 9.5 : lanesVisibles===2 ? 8.5 : 7.5;
     const necesitaExtra = eventosSemana.some(ev=>ev.lane>=MAX_LANES_CAL);
-    const rowH = dayNumH + padTop + (lanesVisibles>0 ? lanesVisibles*barH + Math.max(0,lanesVisibles-1)*barGap : 0) + (necesitaExtra?11:3);
+    const rowH = dayNumH + padTop + (lanesVisibles>0 ? lanesVisibles*barH + Math.max(0,lanesVisibles-1)*barGap : 0) + (necesitaExtra?9:2);
 
     const dias = semana.map(c=>{
       const d=c.date;

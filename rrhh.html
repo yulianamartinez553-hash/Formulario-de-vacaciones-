@@ -282,8 +282,12 @@
     position:sticky;top:10px;max-height:calc(100vh - 20px);min-width:0;
     display:flex;flex-direction:column;gap:14px;
   }
-  .pane-cal{flex:none;}
-  .pane-ctrl{flex:1;min-height:0;display:flex;flex-direction:column;overflow:hidden;}
+  /* Tope de tamaño "normal" del calendario: si igual necesitara más lugar
+     (mes con varias semanas muy cargadas), scrollea adentro en vez de
+     empujar/tapar el panel de Control de abajo. */
+  .pane-cal{flex:none;max-height:44vh;display:flex;flex-direction:column;}
+  #vacCalBody{flex:1;overflow-y:auto;min-height:0;}
+  .pane-ctrl{flex:1;min-height:220px;display:flex;flex-direction:column;overflow:hidden;}
   #ctrlTablas{flex:1;min-height:0;overflow:auto;}
   .ctrl-search{
     width:100%;font:inherit;font-size:14px;padding:10px 12px;border:1.5px solid #d5dbe8;
@@ -322,6 +326,13 @@
   .cal-day.today{border-color:var(--azul-servinorte);border-width:1.5px;}
   .cal-daynum{font-family:'Barlow',sans-serif;font-size:9.5px;line-height:1;display:block;color:#8a93a6;position:relative;z-index:1;}
   .cal-day.today .cal-daynum{color:var(--azul-servinorte);font-weight:700;}
+  /* Día con más de 3 períodos superpuestos: el número se destaca en blanco
+     sobre un fondo sólido para que no se pierda entre tantas barras. */
+  .cal-day.cargado .cal-daynum{
+    display:inline-block;background:var(--azul-servinorte);color:#fff;font-weight:700;
+    border-radius:3px;padding:0 3px;
+  }
+  .cal-day.cargado.today .cal-daynum{background:#b91c1c;}
   .cal-extra{position:absolute;bottom:1px;right:3px;font-size:8.5px;color:#8a93a6;font-family:'Barlow',sans-serif;}
   .cal-bars{position:absolute;inset:0;pointer-events:none;}
   .cal-bar{
@@ -1457,7 +1468,7 @@ function setFiltroPeriodo(p){
    Muestra los períodos registrados como barras continuas por semana, con
    asignación de "carril" (lane) global por evento para que un período que
    cruza semanas mantenga la misma fila visualmente. */
-const MAX_LANES_CAL=2;
+const MAX_LANES_CAL=3;
 
 function diffDiasCal(a,b){
   const da=new Date(a.getFullYear(),a.getMonth(),a.getDate());
@@ -1513,25 +1524,30 @@ function pintarCalendario(){
   const eventos=asignarLanesCal(eventosDelMes(calAno, calMes));
   const hoy=new Date();
 
-  const maxLane = eventos.reduce((m,ev)=>Math.max(m, ev.lane), -1);
-  const lanesVisibles = Math.max(0, Math.min(MAX_LANES_CAL, maxLane+1));
-  const barH = lanesVisibles<=1 ? 21 : 15;
-  const barFont = lanesVisibles<=1 ? 12.5 : 10;
   const barGap = 2;
   const dayNumH = 16;
   const padTop = 5;
-  const necesitaExtra = eventos.some(ev=>ev.lane>=MAX_LANES_CAL);
-  const rowH = dayNumH + padTop + (lanesVisibles>0 ? lanesVisibles*barH + Math.max(0,lanesVisibles-1)*barGap : 0) + (necesitaExtra?11:3);
 
   body.innerHTML = semanas.map(semana=>{
     const weekStart=semana[0].date, weekEnd=semana[6].date;
     const eventosSemana = eventos.filter(ev => ev.fin>=weekStart && ev.ini<=weekEnd);
 
+    // Alto de la fila: solo según la superposición DE ESTA semana, no la del
+    // mes entero — una semana cargada ya no infla las otras 5.
+    const maxLaneSemana = eventosSemana.reduce((m,ev)=>Math.max(m, ev.lane), -1);
+    const lanesVisibles = Math.max(0, Math.min(MAX_LANES_CAL, maxLaneSemana+1));
+    const barH = lanesVisibles<=1 ? 21 : lanesVisibles===2 ? 17 : 14;
+    const barFont = lanesVisibles<=1 ? 12.5 : lanesVisibles===2 ? 10.5 : 9;
+    const necesitaExtra = eventosSemana.some(ev=>ev.lane>=MAX_LANES_CAL);
+    const rowH = dayNumH + padTop + (lanesVisibles>0 ? lanesVisibles*barH + Math.max(0,lanesVisibles-1)*barGap : 0) + (necesitaExtra?11:3);
+
     const dias = semana.map(c=>{
       const d=c.date;
       const esHoy = c.inMonth && d.getFullYear()===hoy.getFullYear() && d.getMonth()===hoy.getMonth() && d.getDate()===hoy.getDate();
+      const totalDia = eventosSemana.filter(ev=> d>=ev.ini && d<=ev.fin).length;
       const extras = eventosSemana.filter(ev=> ev.lane>=MAX_LANES_CAL && d>=ev.ini && d<=ev.fin).length;
-      return `<div class="cal-day ${c.inMonth?'':'empty'} ${esHoy?'today':''}">
+      const cargado = totalDia>3;
+      return `<div class="cal-day ${c.inMonth?'':'empty'} ${esHoy?'today':''} ${cargado?'cargado':''}">
         ${c.inMonth ? `<span class="cal-daynum">${d.getDate()}</span>` : ''}
         ${extras>0 ? `<span class="cal-extra">+${extras}</span>` : ''}
       </div>`;

@@ -156,10 +156,11 @@
 
   /* Hub unificado: registro (2/3) + control (1/3) */
   .hub{
-    max-width:760px;margin:0 auto;padding:16px 12px 40px;color:#24355f;
+    max-width:1400px;margin:0 auto;padding:16px 12px 40px;color:#24355f;
   }
   .hub-split{
-    display:block;
+    display:grid;grid-template-columns:minmax(0,2fr) minmax(280px,1fr);
+    gap:14px;align-items:start;
   }
   .pane{
     min-width:0;background:rgba(255,255,255,.94);border-radius:16px;padding:14px 14px 16px;
@@ -273,9 +274,9 @@
     background:rgba(31,61,129,.10);padding:5px 7px;border-radius:6px;white-space:nowrap;
   }
 
-  /* Única columna: calendario + control de vacaciones del grupo, uno debajo del otro */
+  /* Columna derecha: calendario (solo) + control de vacaciones, pegados juntos */
   .col-ctrl{
-    min-width:0;
+    position:sticky;top:10px;max-height:calc(100vh - 20px);min-width:0;
     display:flex;flex-direction:column;gap:14px;
   }
   /* El calendario mantiene su forma completa (6 semanas, sin recortar ni
@@ -414,7 +415,57 @@
 <div class="hub no-print" id="hub">
   <div class="hub-split">
 
-    <div class="hub-msg" id="hubMsg" style="text-align:center;margin-bottom:10px;"></div>
+    <section class="pane pane-reg" aria-label="Registro de vacaciones">
+      <h2>Registro de vacaciones</h2>
+
+      <div class="hub-card">
+        <div class="search-row">
+          <input id="empSearch" type="search" placeholder="Buscar empleado por nombre o legajo…" autocomplete="off" oninput="onEmpSearch()">
+          <div class="suggest" id="empSuggest"></div>
+        </div>
+        <div class="meta-grid">
+          <div class="fld"><label>Legajo</label><div class="val" id="mLeg">—</div></div>
+          <div class="fld"><label>Antigüedad</label><div class="val" id="mAntig">—</div></div>
+          <div class="fld"><label>Empleado</label><div class="val" id="mNom">—</div></div>
+          <div class="fld"><label>Sector / Puesto</label><div class="val" id="mPuesto">—</div></div>
+          <div class="date-summary">
+            <div class="fld">
+              <label>Desde</label>
+              <div class="val" id="mDesdeLabel">—</div>
+              <input type="hidden" id="mDesde" value="">
+            </div>
+            <div class="fld">
+              <label>Hasta</label>
+              <div class="val" id="mHastaLabel">—</div>
+              <input type="hidden" id="mHasta" value="">
+            </div>
+          </div>
+          <div class="cal-wrap" id="calWrap">
+            <div class="cal">
+              <div class="cal-nav">
+                <button type="button" onclick="shiftCal(-1)" aria-label="Mes anterior">‹</button>
+                <strong id="calTitle">Mes</strong>
+                <button type="button" onclick="shiftCal(1)" aria-label="Mes siguiente">›</button>
+              </div>
+              <div class="cal-grid" id="calGrid"></div>
+              <div class="cal-hint" id="calHint">Tocá desde y luego hasta en el mismo calendario</div>
+            </div>
+          </div>
+          <div class="meta-after-cal">
+            <div class="fld"><label>Días solicitados</label><div class="val" id="mDias">—</div></div>
+            <div class="fld"><label>Período</label>
+              <select class="fld-select" id="mPeriodoSel" onchange="onCambioPeriodoManual()" disabled>
+                <option value="">—</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="hub-actions">
+          <button type="button" class="btn solid" id="btnManual" onclick="generarRegistroManual()" disabled>Generar registro y abrir formulario</button>
+        </div>
+        <div class="hub-msg" id="hubMsg"></div>
+      </div>
+    </section>
 
     <div class="col-ctrl">
 
@@ -649,6 +700,7 @@ const OTRA_SOCIEDAD = new Set([
 
 let registros = [];
 let empleadosHub = [];
+let empSeleccionado = null;
 let filtroPeriodo = null;
 let calAno = null;
 let calMes = null;
@@ -881,13 +933,109 @@ function setHubMsg(t, cls){
   el.className='hub-msg'+(cls?(' '+cls):'');
 }
 
+function matchesEmp(e, q){
+  const s=String(q||'').trim();
+  if(!s) return true;
+  const n=normName(s);
+  const toks=n.split(' ').filter(Boolean);
+  const name=normName(e.nombre);
+  const nameToks=name.split(' ').filter(Boolean);
+  if(String(e.legajo).includes(s.replace(/\s+/g,''))) return true;
+  return toks.every(t => nameToks.some(nt => nt.includes(t) || t.includes(nt)) || name.includes(t));
+}
+
+function onEmpSearch(){
+  const q=document.getElementById('empSearch').value||'';
+  const box=document.getElementById('empSuggest');
+  const hits=empleadosHub.filter(e=>matchesEmp(e,q)).slice(0,12);
+  if(!q.trim() || !hits.length){ box.classList.remove('open'); box.innerHTML=''; return; }
+  box.innerHTML=hits.map((e,i)=>{
+    const inf=infoSaldoEmp(e);
+    const saldoTxt = inf.saldo>0 ? `Período ${inf.periodo}: ${inf.saldo} d` : 'Sin saldo';
+    return `<button type="button" data-i="${i}"><b>${esc(e.nombre)}</b><small>LEG ${esc(e.legajo)} · ${esc(e.antiguedad||'Sin antigüedad')} · ${esc(saldoTxt)}</small></button>`;
+  }).join('');
+  box.classList.add('open');
+  [...box.querySelectorAll('button')].forEach((btn,i)=>{
+    btn.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      seleccionarEmpleado(hits[i]);
+    });
+  });
+}
+
 const MESES_ES=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const DIAS_ES=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+let calCursor=new Date();
+let pickStep=0; // 0 = elegir desde, 1 = elegir hasta (mismo calendario)
+
+/** Período más viejo con saldo > 0 (se busca en TODOS los períodos con datos,
+ * no solo los 3 últimos, para poder cerrar deuda vieja como 2023). */
+function periodoPrioritario(emp){
+  for(const p of PERIODOS_HOJA){
+    if((emp.saldos && emp.saldos[p])>0) return p;
+  }
+  return PERIODOS_HOJA[PERIODOS_HOJA.length-1];
+}
+/** Todos los períodos donde el empleado tiene saldo > 0 (para el selector manual). */
+function periodosConSaldo(emp){
+  if(!emp || !emp.saldos) return [];
+  return PERIODOS_HOJA.filter(p => (emp.saldos[p]||0) > 0);
+}
+// Override manual del período (elegido en el <select>); null = usar el prioritario (el más viejo con saldo).
+let periodoManual = null;
+function infoSaldoEmp(emp){
+  if(!emp || !emp.saldos) return {periodo:null, saldo:0};
+  const periodo = (periodoManual!=null && (emp.saldos[periodoManual]||0)>0) ? periodoManual : periodoPrioritario(emp);
+  return {periodo, saldo: emp.saldos[periodo]||0};
+}
+function pintarPeriodoSelect(emp){
+  const sel=document.getElementById('mPeriodoSel');
+  if(!sel) return;
+  const disponibles=periodosConSaldo(emp);
+  if(!disponibles.length){ sel.innerHTML='<option value="">Sin saldo</option>'; sel.disabled=true; return; }
+  const actual=infoSaldoEmp(emp).periodo;
+  sel.disabled=false;
+  sel.innerHTML=disponibles.map(p=>{
+    const d=emp.saldos[p]||0;
+    return `<option value="${p}"${p===actual?' selected':''}>${p} · ${d} d</option>`;
+  }).join('');
+}
+function onCambioPeriodoManual(){
+  if(!empSeleccionado) return;
+  const sel=document.getElementById('mPeriodoSel');
+  periodoManual = sel.value ? Number(sel.value) : null;
+  clampRangoAlSaldo();
+  pintarLabelsFecha();
+  syncManualDias();
+  mostrarCalendarioRango();
+}
 function addDiasDate(d,n){
   const x=new Date(d.getFullYear(), d.getMonth(), d.getDate());
   x.setDate(x.getDate()+n);
   return x;
 }
+/** Última fecha posible eligiendo "desde" tal que se consuman exactamente
+ * "saldo" días corridos (feriados incluidos — no extienden el rango). */
+function maxHastaISO(desdeISO, saldo){
+  if(!desdeISO || !(saldo>0)) return null;
+  const desde=fromISODateInput(desdeISO);
+  if(!desde) return null;
+  return toISODateInput(addDiasDate(desde, saldo-1));
+}
+function clampRangoAlSaldo(){
+  if(!empSeleccionado) return;
+  const {saldo}=infoSaldoEmp(empSeleccionado);
+  const desdeISO=document.getElementById('mDesde').value;
+  if(!desdeISO || !(saldo>0)) return;
+  const maxISO=maxHastaISO(desdeISO, saldo);
+  const hastaISO=document.getElementById('mHasta').value;
+  if(!hastaISO || fromISODateInput(hastaISO)<fromISODateInput(desdeISO)){
+    document.getElementById('mHasta').value=desdeISO;
+  }else if(fromISODateInput(hastaISO)>fromISODateInput(maxISO)){
+    document.getElementById('mHasta').value=maxISO;
+  }
+}
+
 function fmtFechaLargaES(iso){
   const d=fromISODateInput(iso);
   if(!d) return '';
@@ -895,6 +1043,282 @@ function fmtFechaLargaES(iso){
 }
 function sameDay(a,b){
   return a && b && a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
+}
+function pintarLabelsFecha(){
+  const a=document.getElementById('mDesde').value;
+  const b=document.getElementById('mHasta').value;
+  document.getElementById('mDesdeLabel').textContent = a ? fmtFechaLargaES(a) : '—';
+  document.getElementById('mHastaLabel').textContent = b ? fmtFechaLargaES(b) : '—';
+}
+function actualizarHintCal(){
+  const hint=document.getElementById('calHint');
+  if(!empSeleccionado){
+    hint.textContent='Seleccioná un empleado para elegir fechas.';
+    return;
+  }
+  const {periodo, saldo}=infoSaldoEmp(empSeleccionado);
+  if(!(saldo>0)){
+    hint.textContent='Sin días disponibles. No se puede registrar.';
+    return;
+  }
+  const desdeISO=document.getElementById('mDesde').value;
+  const hastaISO=document.getElementById('mHasta').value;
+  const dias=diasEntreISO(desdeISO, hastaISO);
+  if(pickStep===0){
+    hint.textContent=`1º tocá el día desde · máx. ${saldo} d (período ${periodo})`;
+  }else{
+    const maxISO=maxHastaISO(desdeISO, saldo);
+    hint.textContent=`2º tocá el día hasta (máx. ${fmtFechaLargaES(maxISO)})`;
+  }
+  if(dias!=null && dias>=1){
+    hint.textContent=`${dias} día${dias===1?'':'s'} marcados · período ${periodo} (${saldo} disp.)`;
+  }
+}
+function mostrarCalendarioRango(){
+  if(!empSeleccionado) return;
+  const {saldo}=infoSaldoEmp(empSeleccionado);
+  const wrap=document.getElementById('calWrap');
+  if(!(saldo>0)){
+    wrap.classList.remove('open');
+    return;
+  }
+  const base=document.getElementById('mDesde').value
+    ? fromISODateInput(document.getElementById('mDesde').value)
+    : new Date();
+  calCursor=new Date(base.getFullYear(), base.getMonth(), 1);
+  pickStep=0;
+  wrap.classList.add('open');
+  renderCal();
+}
+function shiftCal(delta){
+  calCursor=new Date(calCursor.getFullYear(), calCursor.getMonth()+delta, 1);
+  renderCal();
+}
+function renderCal(){
+  const y=calCursor.getFullYear();
+  const m=calCursor.getMonth();
+  document.getElementById('calTitle').textContent=`${MESES_ES[m]} ${y}`;
+  const grid=document.getElementById('calGrid');
+  let html=DIAS_ES.map(d=>`<div class="dow">${d}</div>`).join('');
+  const first=new Date(y,m,1);
+  const start=(first.getDay()+6)%7; // lunes = 0
+  const daysInMonth=new Date(y,m+1,0).getDate();
+  const prevDays=new Date(y,m,0).getDate();
+  const desdeVal=document.getElementById('mDesde').value;
+  const hastaVal=document.getElementById('mHasta').value;
+  const desde=desdeVal?fromISODateInput(desdeVal):null;
+  const hasta=hastaVal?fromISODateInput(hastaVal):null;
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const {saldo}=empSeleccionado ? infoSaldoEmp(empSeleccionado) : {saldo:0};
+  const maxHasta = (desde && saldo>0) ? fromISODateInput(maxHastaISO(desdeVal, saldo)) : null;
+
+  for(let i=0;i<42;i++){
+    let dayNum, inMonth=true, date;
+    if(i<start){
+      dayNum=prevDays-start+i+1;
+      inMonth=false;
+      date=new Date(y,m-1,dayNum);
+    }else if(i>=start+daysInMonth){
+      dayNum=i-(start+daysInMonth)+1;
+      inMonth=false;
+      date=new Date(y,m+1,dayNum);
+    }else{
+      dayNum=i-start+1;
+      date=new Date(y,m,dayNum);
+    }
+    const cls=['day'];
+    if(!inMonth) cls.push('out');
+    if(sameDay(date,hoy)) cls.push('today');
+    const inRange = !!(desde && hasta && date>=desde && date<=hasta);
+    if(inRange){
+      cls.push('inrange');
+      if(sameDay(date,desde)) cls.push('range-start');
+      if(sameDay(date,hasta)) cls.push('range-end');
+    }
+    if((desde && sameDay(date,desde)) || (hasta && sameDay(date,hasta))) cls.push('sel');
+
+    const iso=toISODateInput(date);
+    const feriadoHoy=esFeriado(iso);
+    if(feriadoHoy) cls.push('feriado');
+
+    // Con desde elegido: solo se puede marcar hasta dentro del saldo
+    let blocked=false;
+    if(inMonth && !(saldo>0)) blocked=true;
+    if(inMonth && pickStep===1 && desde){
+      if(date<desde) blocked=true;
+      if(maxHasta && date>maxHasta) blocked=true;
+    }
+    // LCT: las vacaciones no pueden empezar en domingo ni en feriado nacional.
+    if(inMonth && pickStep===0 && !esInicioValido(iso)) blocked=true;
+    // Si ya hay rango completo y estamos en pickStep 0, al reelegir desde no bloqueamos
+    // Si hay desde+hasta y el usuario quiere cambiar: días fuera del saldo futuro se bloquean tras nuevo desde
+    if(blocked) cls.push('blocked');
+
+    const disable = !inMonth || blocked;
+    html+=`<button type="button" class="${cls.join(' ')}" data-iso="${iso}"${disable?' disabled':''}>${dayNum}</button>`;
+  }
+  grid.innerHTML=html;
+  actualizarHintCal();
+  grid.querySelectorAll('.day:not([disabled])').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const iso=btn.getAttribute('data-iso');
+      if(pickStep===0){
+        document.getElementById('mDesde').value=iso;
+        document.getElementById('mHasta').value=iso;
+        pickStep=1;
+      }else{
+        const desdeISO=document.getElementById('mDesde').value;
+        if(desdeISO && fromISODateInput(iso)<fromISODateInput(desdeISO)){
+          document.getElementById('mDesde').value=iso;
+          document.getElementById('mHasta').value=iso;
+          pickStep=1;
+        }else{
+          document.getElementById('mHasta').value=iso;
+          pickStep=0; // listo: se puede volver a elegir otro tramo tocando de nuevo
+        }
+      }
+      clampRangoAlSaldo();
+      pintarLabelsFecha();
+      syncManualDias();
+      renderCal(); // mismo calendario, rango marcado; días/período quedan abajo
+    });
+  });
+}
+
+function seleccionarEmpleado(e){
+  empSeleccionado=e;
+  periodoManual=null; // nuevo empleado: vuelve a auto-elegir el período más viejo con saldo
+  document.getElementById('empSearch').value=e.nombre;
+  document.getElementById('empSuggest').classList.remove('open');
+  document.getElementById('mLeg').textContent=e.legajo||'—';
+  document.getElementById('mNom').textContent=e.nombre||'—';
+  document.getElementById('mPuesto').textContent=e.puesto||'—';
+  document.getElementById('mAntig').textContent=e.antiguedad||'—';
+  pintarPeriodoSelect(e);
+
+  const {periodo, saldo}=infoSaldoEmp(e);
+  // LCT: no puede arrancar en domingo ni feriado — si "hoy" cae en uno, se
+  // sugiere el primer día hábil siguiente.
+  const inicioSugerido = proximoInicioValido(toISODateInput(new Date()));
+  document.getElementById('mDesde').value = saldo>0 ? inicioSugerido : '';
+  document.getElementById('mHasta').value = saldo>0 ? inicioSugerido : '';
+  clampRangoAlSaldo();
+  pintarLabelsFecha();
+  syncManualDias();
+
+  if(!(saldo>0)){
+    document.getElementById('btnManual').disabled=true;
+    document.getElementById('calWrap').classList.remove('open');
+    setHubMsg(`Sin saldo de vacaciones para ${e.nombre}. No se puede generar registro ni abrir formulario nuevo.`,'err');
+    return;
+  }
+
+  document.getElementById('btnManual').disabled=false;
+  setHubMsg(`Período ${periodo}: ${saldo} día${saldo===1?'':'s'} disponibles. Marcá desde y hasta en el calendario.`,'ok');
+  mostrarCalendarioRango();
+}
+
+function syncManualDias(){
+  clampRangoAlSaldo();
+  pintarLabelsFecha();
+  const a=document.getElementById('mDesde').value;
+  const b=document.getElementById('mHasta').value;
+  const dias=diasEntreISO(a,b);
+  document.getElementById('mDias').textContent = dias!=null ? String(dias) : '—';
+  if(!empSeleccionado){
+    document.getElementById('mPeriodoSel').innerHTML='<option value="">—</option>';
+    document.getElementById('mPeriodoSel').disabled=true;
+    document.getElementById('btnManual').disabled=true;
+    return;
+  }
+  const {periodo, saldo}=infoSaldoEmp(empSeleccionado);
+  const ok = saldo>0 && dias!=null && dias>=1 && dias<=saldo;
+  document.getElementById('btnManual').disabled = !ok;
+  if(saldo>0 && dias!=null && dias>saldo){
+    setHubMsg(`Solo puede registrar hasta ${saldo} día${saldo===1?'':'s'} del período ${periodo}.`,'err');
+  }
+}
+
+async function generarRegistroManual(){
+  if(!empSeleccionado){ setHubMsg('Seleccioná un empleado.','err'); return; }
+  const {periodo, saldo}=infoSaldoEmp(empSeleccionado);
+  if(!(saldo>0) || !periodo){
+    setHubMsg('Sin días disponibles en el período de vacaciones. No se genera registro ni formulario.','err');
+    document.getElementById('btnManual').disabled=true;
+    return;
+  }
+  clampRangoAlSaldo();
+  const desdeISO=document.getElementById('mDesde').value;
+  const hastaISO=document.getElementById('mHasta').value;
+  const dias=diasEntreISO(desdeISO, hastaISO);
+  if(!desdeISO||!hastaISO||dias==null){ setHubMsg('Completá fechas válidas (hasta ≥ desde).','err'); return; }
+  if(dias>saldo){
+    setHubMsg(`No se puede: pedís ${dias} días y solo quedan ${saldo} del período ${periodo}.`,'err');
+    document.getElementById('btnManual').disabled=true;
+    return;
+  }
+  const desde=fmtSlash(fromISODateInput(desdeISO));
+  const hasta=fmtSlash(fromISODateInput(hastaISO));
+  const btn=document.getElementById('btnManual');
+  btn.disabled=true;
+  setHubMsg('Registrando…','');
+  try{
+    // Revalida el saldo justo antes de escribir (evita condiciones de carrera entre dos personas registrando a la vez).
+    const { data: freshSaldos, error: errSaldos } = await sb
+      .from('vac_saldos').select('*').eq('empleado_id', empSeleccionado.id);
+    if(errSaldos) throw errSaldos;
+    const { data: freshSols, error: errSols } = await sb
+      .from('vac_solicitudes').select('periodo,dias,estado,origen').eq('empleado_id', empSeleccionado.id);
+    if(errSols) throw errSols;
+    const spFresh = saldoPorPeriodo(empSeleccionado.alta, [periodo], freshSaldos||[], freshSols||[], new Date());
+    const saldoFresco = spFresh[0] ? spFresh[0].restantes : 0;
+    if(dias>saldoFresco){
+      setHubMsg(`No se puede: pedís ${dias} días y solo quedan ${saldoFresco} del período ${periodo} (alguien más registró recién).`,'err');
+      empSeleccionado.saldos[periodo]=saldoFresco;
+      pintarControl();
+      btn.disabled=true;
+      return;
+    }
+
+    const { error: errInsert } = await sb.from('vac_solicitudes').insert({
+      empleado_id: empSeleccionado.id,
+      periodo,
+      fecha_solicitud: desdeISO,
+      fecha_inicio: desdeISO,
+      fecha_fin: hastaISO,
+      dias,
+      estado: 'SOLICITADA',
+      origen: 'app',
+      sector: null,
+      puesto: empSeleccionado.puesto || null
+    });
+    if(errInsert) throw errInsert;
+
+    const nuevo=Math.max(0, saldoFresco-dias);
+    empSeleccionado.saldos[periodo]=nuevo;
+    const ref=empleadosHub.find(x=>x.id===empSeleccionado.id);
+    if(ref) ref.saldos[periodo]=nuevo;
+
+    const row={
+      leg: empSeleccionado.legajo,
+      empleado: empSeleccionado.nombre,
+      puesto: empSeleccionado.puesto||'',
+      desde, hasta,
+      dias: String(dias),
+      periodo: String(periodo),
+      estado: 'SOLICITADA',
+      pend: String(nuevo),
+      empleado_id: empSeleccionado.id
+    };
+    registros.unshift(row);
+    pintarControl();
+    syncManualDias();
+    setHubMsg('Registro creado. Abriendo formulario…','ok');
+    abrirRegistro(row);
+  }catch(err){
+    setHubMsg('Error: '+(err.message||err),'err');
+    btn.disabled=false;
+  }
 }
 
 function esOtraSociedad(e){
@@ -1095,6 +1519,18 @@ function pintarControl(){
 
   cont.innerHTML = bloque('SERVINORTE SRL', principal)
     + (otra.length || empleadosHub.some(esOtraSociedad) ? bloque('SERVINORTE REPUESTOS SA.', otra) : '');
+
+  cont.querySelectorAll('tbody tr[data-k]').forEach(tr=>{
+    tr.addEventListener('click', ()=>{
+      const k=decodeURIComponent(tr.getAttribute('data-k')||'');
+      const emp=empleadosHub.find(e => (e.legajo+'::'+normName(e.nombre))===k);
+      if(emp){
+        seleccionarEmpleado(emp);
+        const pane=document.querySelector('.pane-reg');
+        if(pane) pane.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    });
+  });
 }
 
 
@@ -1204,8 +1640,21 @@ async function cargarHub(){
     pintarControl();
     pintarCalendario();
     setHubMsg(`Grupo ${esc(miGrupo.numero)} · ${empleadosHub.length} empleado${empleadosHub.length===1?'':'s'}`,'ok');
+    preseleccionarDesdeURL();
   }catch(err){
     setHubMsg('No se pudo cargar: '+(err.message||err),'err');
+  }
+}
+
+/** Si viene ?buscar=<legajo o nombre> en la URL, preselecciona ese empleado en el hub. */
+function preseleccionarDesdeURL(){
+  const q=(new URLSearchParams(location.search).get('buscar')||'').trim();
+  if(!q) return;
+  const emp = empleadosHub.find(e=>String(e.legajo)===q) || empleadosHub.find(e=>matchesEmp(e,q));
+  if(emp){
+    seleccionarEmpleado(emp);
+    const pane=document.querySelector('.pane-reg');
+    if(pane) pane.scrollIntoView({behavior:'smooth', block:'start'});
   }
 }
 
@@ -1219,6 +1668,13 @@ function iniciar(){
     return;
   }
   cargarHub();
+  // cerrar sugerencias al click afuera
+  document.addEventListener('click', (ev)=>{
+    const row=document.querySelector('.search-row');
+    if(row && !row.contains(ev.target)){
+      document.getElementById('empSuggest').classList.remove('open');
+    }
+  });
 }
 
 function getMembreteUrl(){

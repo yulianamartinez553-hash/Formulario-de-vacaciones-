@@ -341,9 +341,24 @@
   .cal-bar:hover{filter:brightness(1.15);}
   .ctrl-grupo{
     font-family:'Oswald',sans-serif;letter-spacing:1px;font-size:12px;text-transform:uppercase;
-    color:var(--azul-servinorte);margin:4px 0 5px;
+    color:var(--azul-servinorte);margin:0 0 6px;padding:6px 0 0;
+    background:#fff;position:relative;z-index:1;
   }
-  .ctrl-table-wrap{border-top:1px solid rgba(31,61,129,.12);margin-bottom:6px;}
+  .ctrl-bloque{
+    position:relative;z-index:0;isolation:isolate;
+    margin-bottom:14px;clear:both;
+  }
+  .ctrl-bloque:last-child{margin-bottom:0;}
+  /* Cada sociedad scrollea en su propio contenedor: sin overflow el max-height
+     de mobile dejaba filas derramándose encima del bloque siguiente. */
+  .ctrl-table-wrap{
+    border-top:1px solid rgba(31,61,129,.12);
+    margin-bottom:0;
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+    max-height:min(52vh,520px);
+    background:#fff;
+  }
   .ctrl-table{width:100%;border-collapse:collapse;table-layout:fixed;}
   .ctrl-table thead th{
     position:sticky;top:0;z-index:2;background:#eef2f9;color:var(--azul-servinorte);
@@ -353,7 +368,7 @@
   .ctrl-table thead th.th-emp{text-align:left;padding-left:6px;}
   .ctrl-table tbody td{
     padding:4px 4px;vertical-align:middle;border-bottom:1px solid rgba(31,61,129,.2);
-    background:transparent;
+    background:#fff;
   }
   .ctrl-table tbody tr{cursor:pointer;}
   .ctrl-table tbody tr:hover td{background:rgba(31,61,129,.04);}
@@ -376,8 +391,9 @@
   @media (max-width:960px){
     .hub-split{grid-template-columns:1fr;}
     .col-ctrl{position:relative;top:auto;max-height:none;}
-    .pane-ctrl{max-height:none;}
-    .ctrl-table-wrap{max-height:55vh;}
+    .pane-ctrl{max-height:none;overflow:visible;}
+    #ctrlTablas{overflow:visible;}
+    .ctrl-table-wrap{max-height:48vh;}
   }
   @media (max-width:640px){
     .meta-grid{grid-template-columns:1fr;}
@@ -386,6 +402,7 @@
     .reg-item{grid-template-columns:48px 1fr;}
     .reg-item .tag{grid-column:1/-1;justify-self:start;}
     .ctrl-table .c-num{font-size:17px;}
+    .ctrl-table-wrap{max-height:42vh;}
   }
 
   .app-shell[hidden]{display:none!important;}
@@ -1509,12 +1526,14 @@ function pintarControl(){
   </tr></thead>`;
 
   const bloque=(titulo, arr)=>`
-    <div class="ctrl-grupo">${esc(titulo)}</div>
-    <div class="ctrl-table-wrap">
-      <table class="ctrl-table">
-        ${head}
-        <tbody>${filasControlHtml(arr)}</tbody>
-      </table>
+    <div class="ctrl-bloque">
+      <div class="ctrl-grupo">${esc(titulo)}</div>
+      <div class="ctrl-table-wrap">
+        <table class="ctrl-table">
+          ${head}
+          <tbody>${filasControlHtml(arr)}</tbody>
+        </table>
+      </div>
     </div>`;
 
   cont.innerHTML = bloque('SERVINORTE SRL', principal)

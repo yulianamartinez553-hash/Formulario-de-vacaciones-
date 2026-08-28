@@ -415,12 +415,10 @@
   <div class="gate-card" id="gatePanelLogin">
     <img src="/logo-servinorte.jfif" alt="Servinorte">
     <h1>Vacaciones · Encargado</h1>
-    <p>Ingresá con tu usuario y tu DNI como contraseña para ver el calendario y el control de días de tu grupo.</p>
+    <p>Ingresá tu DNI como contraseña para ver el calendario y el control de días de tu grupo.</p>
     <form id="gateDniForm" autocomplete="on">
-      <label for="gateUsuario">Usuario</label>
-      <input id="gateUsuario" name="usuario" type="text" placeholder="Usuario" required autocomplete="username">
-      <label for="gateDni">Contraseña (tu DNI)</label>
-      <input id="gateDni" name="dni" type="password" inputmode="numeric" placeholder="DNI, sin puntos" required autocomplete="current-password">
+      <label for="gateDni">DNI</label>
+      <input id="gateDni" name="dni" type="password" inputmode="numeric" placeholder="DNI, sin puntos" required autocomplete="current-password" autofocus>
       <button class="btn solid" type="submit" id="gateBtn">Ingresar</button>
     </form>
     <div class="err" id="gateErr"></div>
@@ -428,6 +426,8 @@
 </div>
 
 <div class="app-shell" id="appShell" hidden>
+
+<div id="miEncargado" class="no-print" style="text-align:center;font-family:'Oswald',sans-serif;letter-spacing:.6px;font-size:13px;text-transform:uppercase;color:var(--azul-servinorte);padding:10px 12px 0;"></div>
 
 <div class="hub no-print" id="hub">
   <div class="hub-split">
@@ -568,6 +568,8 @@ function desbloquear(grupo){
   miGrupo = grupo;
   document.getElementById('gate').hidden = true;
   document.getElementById('appShell').hidden = false;
+  const quien=document.getElementById('miEncargado');
+  if(quien) quien.textContent = `${grupo.encargado||''} · ${grupo.nombre||('Grupo '+grupo.numero)}`;
   iniciar();
 }
 
@@ -578,17 +580,16 @@ function setupGate(){
 
   form.addEventListener('submit', async (ev)=>{
     ev.preventDefault();
-    const usuario = (document.getElementById('gateUsuario').value || '').trim();
     const dni = (document.getElementById('gateDni').value || '').trim();
-    if(!usuario || !dni) return;
+    if(!dni) return;
     btn.disabled = true;
     err.textContent = '';
     try{
-      const { data, error } = await sb.rpc('vac_login_encargado', { _usuario: usuario, _dni: dni });
+      const { data, error } = await sb.rpc('vac_login_encargado', { _dni: dni });
       if(error) throw error;
       const fila = data && data[0];
       if(!fila){
-        err.textContent = 'Usuario o DNI incorrecto.';
+        err.textContent = 'DNI incorrecto.';
         return;
       }
       desbloquear({ id: fila.grupo_id, numero: fila.grupo_numero, nombre: fila.grupo_nombre, encargado: fila.encargado_nombre });

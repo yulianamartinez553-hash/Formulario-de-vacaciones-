@@ -557,7 +557,7 @@ const sb = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonK
    empleados de ese grupo (vac_grupo_miembros_publico). No hay botón de
    cerrar sesión: no queda ninguna sesión abierta entre visitas, cada
    entrada a la página vuelve a pedir usuario y DNI. */
-let miGrupo = null; // { id, numero, nombre, encargado } una vez logueado
+let miGrupo = null; // { id, numero, nombre, encargado, veTodos } una vez logueado
 
 function mostrarGateLogin(){
   document.getElementById('gate').hidden = false;
@@ -569,7 +569,9 @@ function desbloquear(grupo){
   document.getElementById('gate').hidden = true;
   document.getElementById('appShell').hidden = false;
   const quien=document.getElementById('miEncargado');
-  if(quien) quien.textContent = `${grupo.encargado||''} · ${grupo.nombre||('Grupo '+grupo.numero)}`;
+  if(quien) quien.textContent = grupo.veTodos
+    ? `${grupo.encargado||''} · Todos los empleados`
+    : `${grupo.encargado||''} · ${grupo.nombre||('Grupo '+grupo.numero)}`;
   iniciar();
 }
 
@@ -592,7 +594,7 @@ function setupGate(){
         err.textContent = 'DNI incorrecto.';
         return;
       }
-      desbloquear({ id: fila.grupo_id, numero: fila.grupo_numero, nombre: fila.grupo_nombre, encargado: fila.encargado_nombre });
+      desbloquear({ id: fila.grupo_id, numero: fila.grupo_numero, nombre: fila.grupo_nombre, encargado: fila.encargado_nombre, veTodos: !!fila.ve_todos });
     }catch(e){
       err.textContent = 'No se pudo validar: ' + (e.message || e);
     }finally{
@@ -1574,28 +1576,37 @@ function abrirRegistro(r){
 }
 
 async function cargarHub(){
-  setHubMsg('Cargando empleados y saldos de tu grupo…','');
+  setHubMsg(miGrupo && miGrupo.veTodos ? 'Cargando todos los empleados y saldos…' : 'Cargando empleados y saldos de tu grupo…','');
   try{
     if(!miGrupo || !miGrupo.id){ setHubMsg('No hay grupo asignado.','err'); return; }
 
-    // Solo la gente del grupo del encargado logueado — el login (vac_login_encargado)
-    // ya resolvió el grupo; acá se traen sus miembros y se filtra todo a esos IDs.
-    const { data: miembros, error: errMiembros } = await sb
-      .from('vac_grupo_miembros_publico').select('empleado_id').eq('grupo_id', miGrupo.id);
-    if(errMiembros) throw errMiembros;
-    const ids = (miembros||[]).map(m=>m.empleado_id);
-    if(!ids.length){
-      empleadosHub=[]; registros=[];
-      pintarControl(); pintarCalendario();
-      setHubMsg('Tu grupo todavía no tiene empleados asignados.','err');
-      return;
+    // Encargados normales: solo la gente de su propio grupo (vac_login_encargado
+    // ya resolvió el grupo; acá se traen sus miembros y se filtra todo a esos IDs).
+    // Encargados con ve_todos (ver desde vac_login_encargado): sin filtro de grupo,
+    // acceso a todos los empleados activos.
+    let ids = null;
+    if(!miGrupo.veTodos){
+      const { data: miembros, error: errMiembros } = await sb
+        .from('vac_grupo_miembros_publico').select('empleado_id').eq('grupo_id', miGrupo.id);
+      if(errMiembros) throw errMiembros;
+      ids = (miembros||[]).map(m=>m.empleado_id);
+      if(!ids.length){
+        empleadosHub=[]; registros=[];
+        pintarControl(); pintarCalendario();
+        setHubMsg('Tu grupo todavía no tiene empleados asignados.','err');
+        return;
+      }
     }
 
-    const [empRes, saldoRes, solRes] = await Promise.all([
-      sb.from('vac_empleados_publico').select('*').eq('activo', true).in('id', ids).order('nombre'),
-      sb.from('vac_saldos').select('*').in('empleado_id', ids),
-      sb.from('vac_solicitudes').select('*').in('empleado_id', ids).order('fecha_inicio', {ascending:false})
-    ]);
+    let qEmp = sb.from('vac_empleados_publico').select('*').eq('activo', true).order('nombre');
+    let qSaldo = sb.from('vac_saldos').select('*');
+    let qSol = sb.from('vac_solicitudes').select('*').order('fecha_inicio', {ascending:false});
+    if(ids){
+      qEmp = qEmp.in('id', ids);
+      qSaldo = qSaldo.in('empleado_id', ids);
+      qSol = qSol.in('empleado_id', ids);
+    }
+    const [empRes, saldoRes, solRes] = await Promise.all([qEmp, qSaldo, qSol]);
     if(empRes.error) throw empRes.error;
     if(saldoRes.error) throw saldoRes.error;
     if(solRes.error) throw solRes.error;
@@ -1659,7 +1670,8 @@ async function cargarHub(){
     registros = [...registrosApp, ...registrosHist].sort((a,b)=> a._fi < b._fi ? 1 : -1);
     pintarControl();
     pintarCalendario();
-    setHubMsg(`Grupo ${esc(miGrupo.numero)} · ${empleadosHub.length} empleado${empleadosHub.length===1?'':'s'}`,'ok');
+    const etiquetaGrupo = miGrupo.veTodos ? 'Todos los empleados' : `Grupo ${esc(miGrupo.numero)}`;
+    setHubMsg(`${etiquetaGrupo} · ${empleadosHub.length} empleado${empleadosHub.length===1?'':'s'}`,'ok');
     preseleccionarDesdeURL();
   }catch(err){
     setHubMsg('No se pudo cargar: '+(err.message||err),'err');

@@ -557,7 +557,7 @@ const sb = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseAnonK
    empleados de ese grupo (vac_grupo_miembros_publico). No hay botón de
    cerrar sesión: no queda ninguna sesión abierta entre visitas, cada
    entrada a la página vuelve a pedir usuario y DNI. */
-let miGrupo = null; // { id, numero, nombre, encargado, veTodos } una vez logueado
+let miGrupo = null; // { id, numero, nombre, encargado, veTodos, dni } una vez logueado
 
 function mostrarGateLogin(){
   document.getElementById('gate').hidden = false;
@@ -594,7 +594,10 @@ function setupGate(){
         err.textContent = 'DNI incorrecto.';
         return;
       }
-      desbloquear({ id: fila.grupo_id, numero: fila.grupo_numero, nombre: fila.grupo_nombre, encargado: fila.encargado_nombre, veTodos: !!fila.ve_todos });
+      // El DNI se guarda porque es la credencial con la que el resto de las
+      // llamadas se identifica: las funciones del servidor validan contra él
+      // qué empleados puede ver y tocar este encargado.
+      desbloquear({ id: fila.grupo_id, numero: fila.grupo_numero, nombre: fila.grupo_nombre, encargado: fila.encargado_nombre, veTodos: !!fila.ve_todos, dni });
     }catch(e){
       err.textContent = 'No se pudo validar: ' + (e.message || e);
     }finally{
@@ -1284,13 +1287,20 @@ async function generarRegistroManual(){
   setHubMsg('Registrando…','');
   try{
     // Revalida el saldo justo antes de escribir (evita condiciones de carrera entre dos personas registrando a la vez).
-    const { data: freshSaldos, error: errSaldos } = await sb
-      .from('vac_saldos').select('*').eq('empleado_id', empSeleccionado.id);
-    if(errSaldos) throw errSaldos;
-    const { data: freshSols, error: errSols } = await sb
-      .from('vac_solicitudes').select('periodo,dias,estado,origen').eq('empleado_id', empSeleccionado.id);
-    if(errSols) throw errSols;
-    const spFresh = saldoPorPeriodo(empSeleccionado.alta, [periodo], freshSaldos||[], freshSols||[], new Date());
+    // El servidor comprueba que este encargado tenga alcance sobre el empleado
+    // antes de devolver nada: si no, responde null.
+    const { data: fresh, error: errFresh } = await sb.rpc('vac_empleado_para_encargado', {
+      _dni_encargado: miGrupo.dni,
+      _empleado_id: empSeleccionado.id
+    });
+    if(errFresh) throw errFresh;
+    if(!fresh){
+      setHubMsg('No tenés permiso para registrar sobre ese empleado.','err');
+      return;
+    }
+    const freshSaldos = fresh.saldos || [];
+    const freshSols = fresh.solicitudes || [];
+    const spFresh = saldoPorPeriodo(empSeleccionado.alta, [periodo], freshSaldos, freshSols, new Date());
     const saldoFresco = spFresh[0] ? spFresh[0].restantes : 0;
     if(dias>saldoFresco){
       setHubMsg(`No se puede: pedís ${dias} días y solo quedan ${saldoFresco} del período ${periodo} (alguien más registró recién).`,'err');
@@ -1300,19 +1310,23 @@ async function generarRegistroManual(){
       return;
     }
 
-    const { error: errInsert } = await sb.from('vac_solicitudes').insert({
-      empleado_id: empSeleccionado.id,
-      periodo,
-      fecha_solicitud: desdeISO,
-      fecha_inicio: desdeISO,
-      fecha_fin: hastaISO,
-      dias,
-      estado: 'SOLICITADA',
-      origen: 'app',
-      sector: null,
-      puesto: empSeleccionado.puesto || null
+    // El alta pasa por el servidor, que valida el alcance del encargado sobre
+    // el empleado, que el legajo esté activo, que las fechas y el período
+    // tengan sentido, y que no se duplique la misma solicitud (un doble clic
+    // ya no carga dos). Antes era un INSERT directo que aceptaba cualquier fila.
+    const { data: alta, error: errInsert } = await sb.rpc('vac_registrar_solicitud_encargado', {
+      _dni_encargado: miGrupo.dni,
+      _empleado_id: empSeleccionado.id,
+      _periodo: periodo,
+      _fecha_inicio: desdeISO,
+      _fecha_fin: hastaISO,
+      _dias: dias
     });
     if(errInsert) throw errInsert;
+    if(!alta || !alta.ok){
+      setHubMsg((alta && alta.error) || 'No se pudo registrar la solicitud.','err');
+      return;
+    }
 
     const nuevo=Math.max(0, saldoFresco-dias);
     empSeleccionado.saldos[periodo]=nuevo;
@@ -1582,44 +1596,39 @@ async function cargarHub(){
 
     // Encargados normales: solo la gente de su propio grupo (vac_login_encargado
     // ya resolvió el grupo; acá se traen sus miembros y se filtra todo a esos IDs).
-    // Encargados con ve_todos (ver desde vac_login_encargado): sin filtro de grupo,
-    // acceso a todos los empleados activos.
-    let ids = null;
-    if(!miGrupo.veTodos){
-      const { data: miembros, error: errMiembros } = await sb
-        .from('vac_grupo_miembros_publico').select('empleado_id').eq('grupo_id', miGrupo.id);
-      if(errMiembros) throw errMiembros;
-      ids = (miembros||[]).map(m=>m.empleado_id);
-      if(!ids.length){
-        empleadosHub=[]; registros=[];
-        pintarControl(); pintarCalendario();
-        setHubMsg('Tu grupo todavía no tiene empleados asignados.','err');
-        return;
-      }
+    // Una sola llamada en vez de cinco consultas a tablas.
+    //
+    // Antes esto leía `vac_empleados_publico`, `vac_saldos`, `vac_solicitudes`,
+    // `vac_grupo_miembros_publico` y `vac_hist_solicitudes` directo con la
+    // `anon` key. Como esa clave viaja en este mismo archivo, cualquiera que
+    // abriera el código fuente podía repetir esas consultas y bajarse la nómina
+    // completa de la empresa con el régimen de vacaciones de cada uno.
+    //
+    // Ahora el servidor recibe el DNI del encargado y devuelve únicamente los
+    // empleados que le corresponden — su grupo, o todos si tiene `ve_todos`.
+    // El filtro pasó a estar del lado de Postgres, donde no se puede esquivar.
+    const { data: hub, error: errHub } = await sb.rpc('vac_consultar_grupo_por_dni', { _dni: miGrupo.dni });
+    if(errHub) throw errHub;
+    if(!hub){
+      empleadosHub=[]; registros=[];
+      pintarControl(); pintarCalendario();
+      setHubMsg('No pudimos validar tu acceso. Volvé a entrar con tu DNI.','err');
+      return;
     }
 
-    let qEmp = sb.from('vac_empleados_publico').select('*').eq('activo', true).order('nombre');
-    let qSaldo = sb.from('vac_saldos').select('*');
-    let qSol = sb.from('vac_solicitudes').select('*').order('fecha_inicio', {ascending:false});
-    if(ids){
-      qEmp = qEmp.in('id', ids);
-      qSaldo = qSaldo.in('empleado_id', ids);
-      qSol = qSol.in('empleado_id', ids);
+    const emps = (hub.empleados || []);
+    if(!emps.length){
+      empleadosHub=[]; registros=[];
+      pintarControl(); pintarCalendario();
+      setHubMsg('Tu grupo todavía no tiene empleados asignados.','err');
+      return;
     }
-    const [empRes, saldoRes, solRes] = await Promise.all([qEmp, qSaldo, qSol]);
-    if(empRes.error) throw empRes.error;
-    if(saldoRes.error) throw saldoRes.error;
-    if(solRes.error) throw solRes.error;
 
-    const emps=empRes.data||[];
-    const saldos=saldoRes.data||[];
-    const sols=solRes.data||[];
-    const codigos=emps.map(e=>e.codigo).filter(Boolean);
-    const histRes = codigos.length
-      ? await sb.from('vac_hist_solicitudes').select('*').in('codigo', codigos).order('fecha_inicio', {ascending:false})
-      : { data: [] };
-    if(histRes.error) throw histRes.error;
-    const hist=histRes.data||[];
+    // El resto del código espera estos cuatro arrays planos, así que se
+    // reconstruyen desde la respuesta anidada en vez de tocar todo lo de abajo.
+    const saldos = emps.flatMap(e => (e.saldos||[]).map(s => ({ ...s, empleado_id: e.id })));
+    const sols   = emps.flatMap(e => (e.solicitudes||[]).map(s => ({ ...s, empleado_id: e.id })));
+    const hist   = emps.flatMap(e => (e.historico||[]).map(h => ({ ...h, codigo: e.codigo })));
     const hoy=new Date();
 
     const saldosByEmp={}, solsByEmp={};
